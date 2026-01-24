@@ -25,7 +25,6 @@ fi
 
 # Read runtime properties
 echo
-echo Loading properties...
 branch=stable
 commit=undefined
 tag=undefined
@@ -39,7 +38,6 @@ if [ ! -d "$projbasedir/.polytool" ]; then
 fi
 
 # Determine if update is needed
-echo Determining update status...
 currentver="$branch-$tag-$commit"
 if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit" == "undefined" ]); then 
     # Set up environment
@@ -53,13 +51,13 @@ if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit
         targetpretty="Commit $commit from branch $branch"
     fi
 
-    # Log
-    echo "Downloading PolyTool $targetpretty..."
-
     # Check
     updated=false
     lastdir="$PWD"
     if [ ! -d "$projbasedir/.polytool" ]; then
+        # Log
+        echo "Downloading PolyTool $targetpretty..."
+
         # Clone
         git clone "$url" --branch "$targetbranch" "$projbasedir/.polytool" || exit 1
         
@@ -77,6 +75,9 @@ if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit
         fi
         updated=true
     else
+        # Log
+        echo "Updating PolyTool $targetpretty..."
+        
         # Enter polytool
         cd "$projbasedir/.polytool"
         currentcommit="$(git rev-parse HEAD)"
@@ -92,11 +93,15 @@ if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit
 
         # Pull if needed
         if [ "$tag" == "undefined" ]; then
-            git pull || exit 1
-            commitnow="$(git rev-parse HEAD)"
-            if [ "$commitnow" != "$currentcommit" ]; then 
-                updated=true
-                currentcommit="$commitnow"
+            remote="$(git remote)"
+            upstreamcommit="$(git rev-parse "$remote/$targetbranch")"
+            if [ "$upstreamcommit" != "$currentcommit" ]; then
+                git pull || exit 1  
+                commitnow="$(git rev-parse HEAD)"
+                if [ "$commitnow" != "$currentcommit" ]; then 
+                    updated=true
+                    currentcommit="$commitnow"
+                fi
             fi
         fi
 
@@ -113,15 +118,16 @@ if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit
     cd "$lastdir"
 
     # Update stored version
-    echo "$currentver" >> "$projbasedir/.polytool-version"
+    echo "$currentver" > "$projbasedir/.polytool-version"
     version="$(cat "$projbasedir/.polytool/version.info")"
     if [ "$updated" == "true" ]; then
         echo "Finished! PolyTool runtime updated to $version"
+        chmod -R +x "$projbasedir/.polytool/src"
+        chmod +x "$projbasedir/.polytool/polytool"
     else
         echo "PolyTool Runtime was already up to date!"
     fi
+    echo
 fi
 
-echo
-echo Starting runtime...
-
+"$projbasedir/.polytool/polytool" "$@"
