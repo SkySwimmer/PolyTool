@@ -45,6 +45,13 @@ function loadProject() {
     if [ "$name" != "$(basename "$projectRealDir")" ]; then
         projectName="$name"
     fi
+    if [ "$ROOTPROJECT" == "undefined" ]; then
+        ROOTPROJECTID="$id"
+    fi
+    if [ "$BASEPROJECT" == "undefined" ]; then
+        BASEPROJECTID="$id"
+    fi
+    LOCALPROJECTID="$id"
 
     # Check if loaded
     # This is done post-sourcing so the project properties are still as expected
@@ -245,14 +252,29 @@ function runLocalToProject() {
     local baseBuildForProject="${projectsBaseProject["$project"]}/build"
     local currentBaseProject="$BASEPROJECT"
     local currentBaseBuild="$BASEBUILDDIR"
+    local currentBaseId="$BASEPROJECTID"
+    local currentProjectId="$PROJECTID"
+    local currentProjectBuild="$BUILDDIR"
+    local currentProject="$LOCALPROJECT"
 
     # Update
     BASEPROJECT="$baseForProject"
     BASEBUILDDIR="$baseBuildForProject"
+    BASEPROJECTID="$project"
+    PROJECTID="$project"
     BUILDDIR="$projectPath/build"
     LOCALPROJECT="$projectPath"
 
     # Call
     runFunctionSafe "$function" "${functionParams[@]}"
-    return $?
+    exit=$?
+    
+    # Restore
+    BASEPROJECT="$currentBaseProject"
+    BASEBUILDDIR="$currentBaseBuild"
+    BASEPROJECTID="$currentBaseId"
+    PROJECTID="$currentProjectid"
+    BUILDDIR="$currentProjectBuild"
+    LOCALPROJECT="$currentProject"
+    return $exit
 }

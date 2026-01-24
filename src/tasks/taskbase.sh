@@ -14,6 +14,19 @@ function runTaskWithRunnerIfNeeded() {
     return $?
 }
 
+function runTaskWithRunner() {
+    local args=("$@")
+
+    local task="$1"
+    
+    local runner="$2"
+    local runnerArgs=()
+    arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
+
+    runFunctionSafe "$runner" "$task" "${runnerArgs[@]}"
+    return $?
+}
+
 function singleExecuteRunnerRelativeToProject() {
     local args=("$@")
 

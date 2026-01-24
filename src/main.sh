@@ -35,10 +35,7 @@ function main() {
     # FIXME: set up    
 
     # FIXME tests
-    loadProject "<root>" "$PWD" "<root project>"
-    loadProject "<root>" "$PWD" "<root project>"
-    loadProject "<root>" "$PWD" "<root project>"
     runLocalToProject testsub runTaskWithRunnerIfNeeded test singleExecuteRunnerRelativeToProject
     runLocalToProject testsub runTaskWithRunnerIfNeeded test singleExecuteRunnerRelativeToProject
-    runLocalToProject testsub runTaskWithRunnerIfNeeded test singleExecuteRunnerRelativeToProject
+    runTaskWithRunner test singleExecuteRunnerRelativeToProject
 }
