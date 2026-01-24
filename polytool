@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Splash
+echo "Welcome to polytool! This is a proof of concept, bash-based, implementation of the PolyCraft build helper."
+echo "PolyCraft is a work-in-progress build tool and dependency helper intended to make it easier to work with multi-repository projects and git-based dependencies."
+echo
+echo "Copyright(C) Nexus Internet Technologies 2026, released under the GPLv2 license. You should have a copy of the license under the .polytool folder of your project if you are using the wrapper."
+
+# Check git
+if ! command -v git &> /dev/null; then
+    1>&2 echo Error: git is not installed, please make sure to install git prior to using polytool
+    exit 1
+fi
+
