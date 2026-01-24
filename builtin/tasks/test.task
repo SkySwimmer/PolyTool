@@ -1,0 +1,11 @@
+#!/bin/bash
+
+function test_run() {
+    echo Test!
+    echo $LOCALPROJECT
+    echo $BASEPROJECT
+    echo $ROOTPROJECT
+    echo $BUILDDIR
+    echo $BASEBUILDDIR
+    echo $ROOTBUILDDIR   
+}

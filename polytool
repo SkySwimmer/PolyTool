@@ -6,19 +6,16 @@ echo "PolyCraft is a work-in-progress build tool and dependency helper intended 
 echo
 echo "Copyright(C) Nexus Internet Technologies 2026, released under the GPLv2 license. You should have a copy of the license under the .polytool folder of your project if you are using the wrapper."
 
-# Check git
-if ! command -v git &> /dev/null; then
-    1>&2 echo Error: git is not installed, please make sure to install git prior to using polytool
-    exit 1
-fi
-
 # Setup
 chmod +x "$0"
 runtimebasedir="$(dirname "$0")"
 
+# Set up environment
+source "$runtimebasedir/src/env.sh"
+
 # Source main source
 function sourceAll() {
-    dir="$1"
+    local dir="$1"
     for subdir in "$dir"/*/; do
         if [ -d "$subdir" ]; then
             sourceAll "$subdir"
@@ -26,11 +23,12 @@ function sourceAll() {
     done
     for file in "$dir"/*; do
         if [ -f "$file" ]; then
-            source "$file"
+            source "$(readlink -f "$file")"
         fi
     done
 }
 sourceAll "$runtimebasedir/src"
 
 # Run
+echo
 main "$@"
