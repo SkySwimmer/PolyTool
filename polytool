@@ -12,3 +12,25 @@ if ! command -v git &> /dev/null; then
     exit 1
 fi
 
+# Setup
+chmod +x "$0"
+runtimebasedir="$(dirname "$0")"
+
+# Source main source
+function sourceAll() {
+    dir="$1"
+    for subdir in "$dir"/*/; do
+        if [ -d "$subdir" ]; then
+            sourceAll "$subdir"
+        fi
+    done
+    for file in "$dir"/*; do
+        if [ -f "$file" ]; then
+            source "$file"
+        fi
+    done
+}
+sourceAll "$runtimebasedir/src"
+
+# Run
+main "$@"
