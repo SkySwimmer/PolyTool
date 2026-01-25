@@ -391,7 +391,7 @@ function runLocalToProject() {
     local currentBaseId="$BASEPROJECTID"
     local currentBaseVersion="$BASEPROJECTVERSION"
     local currentBaseGroup="$BASEPROJECTGROUP"
-    local currentProjectId="$LOCALPROJECTID"c
+    local currentProjectId="$LOCALPROJECTID"
     local currentProjectBuild="$BUILDDIR"
     local currentProject="$LOCALPROJECT"
     local currentLocalProperties=("${LOCALPROPERTIES[@]}")
