@@ -12,19 +12,19 @@ ROOTBUILDDIR=undefined
 BASEBUILDDIR=undefined
 BUILDDIR=undefined
 
-declare -A projects
-declare -A projectsBaseProject
-declare -A projectsNames
-declare -A projectsDirFriendly
-declare -A projectsByDir
-declare -A projectsByGroupAndId
-declare -A projectsSubProjectSetIds
-projects=()
-projectsBaseProject=()
-projectsByDir=()
-projectsByGroupAndId=()
-projectsNames=()
-projectsDirFriendly=()
-projectsSubProjectSetIds=()
+declare -A projects=()
+declare -A projectsBaseProject=()
+declare -A projectsNames=()
+declare -A projectsDirFriendly=()
+declare -A projectsByDir=()
+declare -A projectsByGroupAndId=()
+declare -A projectsSetIds=()
+declare -A projectsBaseProjectIds=()
+
+declare setIds=()
 
 declare requiredCommands=()
+
+declare PROPERTIES=()
+declare GLOBALPROPERTIES=()
+declare LOCALPROPERTIES=()

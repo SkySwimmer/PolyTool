@@ -1,0 +1,25 @@
+#!/bin/bash
+
+function plain_deptype_define() {
+    # Empty
+    :
+}
+
+function plain_deptype_setupEnvironment() {
+    # Empty
+    :
+}
+
+function plain_deptype_syntaxVerify() {
+    return 0
+}
+
+function plain_deptype_restore() {
+    # Empty
+    return 0
+}
+
+function plain_deptype_cleanEnvironment() {
+    # Empty
+    :
+}

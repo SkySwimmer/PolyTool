@@ -18,7 +18,7 @@ function printStackTrace() {
         if [ "$functionName" == "main()" ] && [ "$fileName" == "$(readlink -f "$runtimebasedir/polytool")" ]; then
             functionName="<entry>"
         fi
-        if [ "$functionName" == "crash()" ] && [ "$fileName" == "$(readlink -f "$runtimebasedir/src/util/stacktrace.sh")" ]; then
+        if ([ "$functionName" == "crash()" ] || [ "$functionName" == "runFunctionSafe()" ]) && [ "$fileName" == "$(readlink -f "$runtimebasedir/src/util/stacktrace.sh")" ]; then
             i=$((i+1))
             continue
         fi

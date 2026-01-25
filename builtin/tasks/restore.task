@@ -1,0 +1,422 @@
+#!/bin/bash
+
+function restore_define() {
+    allowMultiExecute=false
+    runtimeTaskShared=true
+}
+
+function restore_run() {
+    # Restore project
+    local dirFriendly="${projectsDirFriendly["$LOCALPROJECTID"]}"
+    for path in "$LOCALPROJECT/dependencies/"*.dep; do
+        # Load dependency project if polyfile is present
+        if [ -f "$path" ]; then
+            # Load dependency sheet
+            depFile="$(basename "$path")"
+            depFilePretty="$dirFriendly/dependencies/$(basename "$path")"
+
+            # Setup
+            setupDependencyEnvironment "$path"
+
+            # Load file
+            source "$path" || loadDependencyError "$depFilePretty"
+
+            # Load overload
+            local localOverload="$projectRealDir/polylocal/dependencies/$(basename "$path")"
+            if [ -f "$localOverload" ]; then 
+                source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
+            fi
+
+            # Check required fields
+            if [ "$type" == "undefined" ]; then
+                1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'type' field!"
+                return 1
+            fi
+            if [ "$id" == "undefined" ]; then
+                1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'id' field!"
+                return 1
+            fi
+            if [ "$output" == "undefined" ]; then
+                1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'output' field!"
+                return 1
+            fi
+            echo ">> Restoring: $id"
+            depOutput="$output"
+
+            # Load type
+            depType="$type"
+            depTypeFound=false
+            local baseProjectId="$BASEPROJECTID"
+            local localProjectId="$LOCALPROJECTID"
+            local rootProjectId="$ROOTPROJECTID"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                return $exit
+            fi
+            if [ "$depTypeFound" != "true" ]; then
+                findAndSourceDepTypeFileFromProject "$LOCALPROJECTID" "$type" 
+                if [ "$baseProjectId" != "$localProjectId" ]; then
+                    findAndSourceDepTypeFileFromProject "$baseProjectId" "$type"
+                    local exit=$?
+                    if [ "$exit" != 0 ]; then
+                        return $exit
+                    fi
+                    if [ "$depTypeFound" != "true" ]; then
+                        if [ "$rootProjectId" != "$localProjectId" ]; then
+                            findAndSourceDepTypeFileFromProject "$rootProjectId" "$type" 
+                            local exit=$?
+                            if [ "$exit" != 0 ]; then
+                                return $exit
+                            fi
+                        fi
+                    fi
+                fi
+            fi
+
+            # Check result
+            if [ "$depTypeFound" != "true" ]; then
+                # Fail
+
+                # Error
+                1>&2 echo "Error: unrecognized dependency type '$type' in dependency file $depFilePretty"
+
+                # Clean type properties
+                depType="undefined"
+
+                # Clean
+                cleanDependencyEnvironment "$path"
+                return $exit
+            fi
+
+            # Call prepare
+            if type "${depType}_deptype_define" &>/dev/null; then
+                runFunctionSafe "${depType}_deptype_define"
+                local exit=$?
+                if [ "$exit" != 0 ]; then
+                    # Clean type properties
+                    depType="undefined"
+
+                    # Clean
+                    cleanDependencyEnvironment "$path"
+                    return $exit
+                fi
+            fi
+
+            # Setup
+            setupDependencyEnvironment "$path"
+            if type "${depType}_deptype_setupEnvironment" &>/dev/null; then
+                runFunctionSafe "${depType}_deptype_setupEnvironment"
+                local exit=$?
+                if [ "$exit" != 0 ]; then
+                    # Clean type properties
+                    depType="undefined"
+
+                    # Clean
+                    cleanDependencyEnvironment "$path"
+                    return $exit
+                fi
+            fi
+
+            # Load file
+            source "$path" || loadDependencyError "$depFilePretty"
+
+            # Load overload
+            local localOverload="$projectRealDir/polylocal/dependencies/$(basename "$path")"
+            if [ -f "$localOverload" ]; then 
+                source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
+            fi
+
+            # Call verify
+            runFunctionSafe "${depType}_deptype_syntaxVerify"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Error
+                1>&2 echo "Error: syntax errors in dependency file $depFilePretty"
+
+                # Call clean
+                if type "${depType}_deptype_cleanEnvironment" &>/dev/null; then
+                    runFunctionSafe "${depType}_deptype_cleanEnvironment"
+                    local exit=$?
+                    if [ "$exit" != 0 ]; then
+                        # Clean type properties
+                        depType="undefined"
+
+                        # Clean
+                        cleanDependencyEnvironment "$path"
+                        return $exit
+                    fi
+                fi
+
+                # Clean type properties
+                depType="undefined"
+
+                # Clean
+                cleanDependencyEnvironment "$path"
+                return $exit
+            fi
+
+            # Call run
+            local outputPath="$LOCALPROJECT/$depOutput"
+            runFunctionSafe "${depType}_deptype_restore" "$ououtputPathtput"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Error
+                1>&2 echo "Error: failed to restore dependency '$id', dependency file: $depFilePretty"
+
+                # Call clean
+                if type "${depType}_deptype_cleanEnvironment" &>/dev/null; then
+                    runFunctionSafe "${depType}_deptype_cleanEnvironment"
+                    local exit=$?
+                    if [ "$exit" != 0 ]; then
+                        # Clean type properties
+                        depType="undefined"
+
+                        # Clean
+                        cleanDependencyEnvironment "$path"
+                        return $exit
+                    fi
+                fi
+
+                # Clean type properties
+                depType="undefined"
+
+                # Clean
+                cleanDependencyEnvironment "$path"
+                return $exit
+            fi
+
+            # Call clean
+            if type "${depType}_deptype_cleanEnvironment" &>/dev/null; then
+                runFunctionSafe "${depType}_deptype_cleanEnvironment"
+                local exit=$?
+                if [ "$exit" != 0 ]; then
+                    # Clean type properties
+                    depType="undefined"
+
+                    # Clean
+                    cleanDependencyEnvironment "$path"
+                    return $exit
+                fi
+            fi
+
+            # Clean type properties
+            depType="undefined"
+
+            # Clean
+            cleanDependencyEnvironment "$path"
+
+            # Check result
+            local path="$LOCALPROJECT/$depOutput"
+            if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]); then
+                # Get set ID
+                local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+                local projectDirPretty="${projectsDirFriendly["$LOCALPROJECTID"]}"
+
+                # Get project environment
+                local currentBaseProject="$BASEPROJECT"
+                local currentBaseBuild="$BASEBUILDDIR"
+                local currentBaseId="$BASEPROJECTID"
+                local currentProjectId="$LOCALPROJECTID"
+                local currentProjectBuild="$BUILDDIR"
+                local currentProject="$LOCALPROJECT"
+                local currentLocalProperties=("${LOCALPROPERTIES[@]}")
+
+                # Prepare paths
+                local pathName="$(basename "$path")"
+                local currentId="$LOCALPROJECTID"
+                local pathpretty="$projectDirPretty/dependencies/$pathName"
+                local fullpath="$(readlink -f "$path")"
+
+                # Get current base
+                local baseProject="$BASEPROJECT"
+                local baseProjectId="$BASEPROJECTID"
+                local baseBuild="$BASEBUILDDIR"
+
+                # Unset, dependencies each are treated as a base
+                BASEPROJECT=undefined
+                BASEPROJECTID=undefined
+                BASEBUILDDIR=undefined
+                
+                # Try loading it
+                name="dependency $pathName"
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" true ">>> " ; then
+                    1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
+                    return 1
+                fi
+                BASEPROJECT="$baseProject"
+                BASEPROJECTID="$baseProjectId"
+                BASEBUILDDIR="$baseBuild"
+                local loadedId="$id"
+
+                # Loaded successfully
+                # Add project to list
+                eval "dependencies_$setId"'+=("'"$id"'")'
+
+                # Restore environment
+                BASEPROJECT="$currentBaseProject"
+                BASEBUILDDIR="$currentBaseBuild"
+                BASEPROJECTID="$currentBaseId"
+                LOCALPROJECTID="$currentProjectId"
+                BUILDDIR="$currentProjectBuild"
+                LOCALPROJECT="$currentProject"
+                LOCALPROPERTIES=("${currentLocalProperties[@]}")
+
+                # Restore dependencies
+                runLocalToProject "$loadedId" callSingleTaskForcedClearStack "restore"
+            fi
+            
+            # Clean
+            cleanDependencyEnvironment "$path"
+        fi
+    done
+}
+
+function findAndSourceDepTypeFileFromProject() {
+    local projectId="$1"
+    local projectDir="${projects["$projectId"]}"
+    local depTypeName="$2"
+
+    if [ "$depTypeFound" == "true" ]; then
+        # Success
+        return 0
+    fi
+    
+    # Box recursion list
+    # We basically copy the list, making it stack-sensitive
+    # After this method finishes, we reset to what it was last
+    # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
+    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
+    CALLINGTASKSLIST=()
+    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+
+    # Get list ID
+    local setId="${projectsSetIds["$projectId"]}"
+
+    # Find type locally
+    execFindAndSourceDepTypeFile "$depTypeName" "$projectDir/deptypes" true "$projectId" "$projectDir"
+    local exit=$?
+    if [ "$exit" != 0 ]; then
+        # Revert list
+        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        return $exit
+    fi
+    if [ "$depTypeFound" == "true" ]; then
+        # Success
+        
+        # Revert list
+        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        return $exit
+    fi
+
+    # Go through sub projects recursively
+    # We stay relative to the current project
+    eval 'subprojectsList=("${'"subprojects_$setId"'[@]}")'
+    for subProjectId in "${subprojectsList[@]}"; do
+        local subProjectDir="${projects["$subProjectId"]}"
+
+        # Run in subproject
+        runLocalToProject "$subProjectId" findAndSourceDepTypeFileFromProject "$subProjectId" "$depTypeName"
+        local exit=$?
+        if [ "$exit" != 0 ]; then
+            # Revert list
+            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            return $exit
+        fi
+        if [ "$depTypeFound" == "true" ]; then
+            # Success
+            
+            # Revert list
+            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            return $exit
+        fi
+    done
+
+    # Go through dependencies recursively
+    # We stay relative to the current project
+    eval 'dependenciesList=("${'"dependencies_$setId"'[@]}")'
+    for depId in "${dependenciesList[@]}"; do
+        local depDir="${projects["$depId"]}"
+
+        # Run in dependency
+        runLocalToProject "$depId" findAndSourceDepTypeFileFromProject "$depId" "$depTypeName"
+        local exit=$?
+        if [ "$exit" != 0 ]; then
+            # Revert list
+            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            return $exit
+        fi
+        if [ "$depTypeFound" == "true" ]; then
+            # Success
+            
+            # Revert list
+            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            return $exit
+        fi
+    done
+
+    # Try finding it in the runtime
+    local runtimeDepTypeDir="$RUNTIMEPATH/builtin/deptypes"
+    if [ -d "$runtimeDepTypeDir" ]; then
+        # Check state
+
+        # Box again
+        local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
+        CALLINGTASKSLIST=()
+        CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+
+        # Find task
+        runLocalToProject "$projectId" execFindAndSourceDepTypeFile "$depTypeName" "$runtimeDepTypeDir" false "" ""
+        local exit=$?
+
+        # Revert
+        CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+
+        # Handle exit
+        if [ "$exit" != 0 ]; then
+            # Revert list
+            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            return $exit
+        fi
+        if [ "$depTypeFound" == "true" ]; then
+            # Success
+            
+            # Revert list
+            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            return $exit
+        fi
+    fi
+
+    # Revert list
+    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+}
+
+function execFindAndSourceDepTypeFile() {
+    # Parse command
+    local depTypeName="$1"
+    local depTypesDir="$2"
+    local isProject="$3" # if false, its a runtime task
+    local projectId="$4"
+    local projectDir="$5"
+
+    # Find task
+    if [ -d "$depTypesDir" ]; then
+        # Try to find task
+        if [ -f "$depTypesDir/$depTypeName.deptype" ]; then
+            # Found task
+            depTypeFound=true
+
+            # Check recursion
+            if arrayContains "$depTypesDir/$depTypeName.deptype" CALLINGTASKSLIST; then
+                return 0
+            fi
+            CALLINGTASKSLIST+=("$depTypesDir/$depTypeName.deptype")
+            
+            local depTypeFile="$depTypesDir/$depTypeName.deptype"
+            local localDepTypeFile="$LOCALPROJECT/polylocal/deptypes/$depTypeName.deptype"
+            source "$depTypeFile" || depTypeLoadError "$depTypeName.deptype"
+            if [ -f "$localDepTypeFile" ]; then
+                source "$localDepTypeFile" || depTypeLoadError "${projectsDirFriendly["$LOCALPROJECTID"]}/polylocal/deptypes/$depTypeName.deptype"
+            fi
+        fi
+    fi
+}

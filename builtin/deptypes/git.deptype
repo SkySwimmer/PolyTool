@@ -1,0 +1,34 @@
+#!/bin/bash
+
+function git_deptype_define() {
+    # Empty
+    :
+}
+
+function git_deptype_setupEnvironment() {
+    url="undefined"
+    tag="undefined"
+    commit="undefined"
+    branch="undefined"
+}
+
+function git_deptype_syntaxVerify() {
+    if [ "$url" == "undefined" ]; then 
+        1>&2 echo Error: missing 'url' statement in dependency file
+        return 1
+    fi
+    return 0
+}
+
+function git_deptype_restore() {
+    # Restore logic
+    echo ">>> Restoring Git project $id from URL $url..."
+    return 0
+}
+
+function git_deptype_cleanEnvironment() {
+    url="undefined"
+    tag="undefined"
+    commit="undefined"
+    branch="undefined"
+}

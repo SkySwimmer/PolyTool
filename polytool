@@ -4,7 +4,8 @@
 echo "Welcome to polytool! This is a proof of concept, bash-based, implementation of the PolyCraft build helper."
 echo "PolyCraft is a work-in-progress build tool and dependency helper intended to make it easier to work with multi-repository projects and git-based dependencies."
 echo
-echo "Copyright(C) Nexus Internet Technologies 2026, released under the GPLv2 license. You should have a copy of the license under the .polytool folder of your project if you are using the wrapper."
+echo "Copyright(C) Nexus Developers Group 2026, released under the GPLv2 license."
+echo "You should have received a copy of the license under the .polytool folder of your project if you are using the wrapper."
 
 # Setup
 chmod +x "$0"
