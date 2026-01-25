@@ -97,7 +97,7 @@ function git_deptype_restore() {
                 gitRestoreFail
                 return 1
             fi
-            if [ "$tag" == "undefined" ] &&  [ "$wasDetached" == false ]; then
+            if [ "$tag" == "undefined" ] && [ "$wasDetached" == false ]; then
                 # Get upstream commit
                 upstreamcommit="$(git rev-parse "$remote/$targetbranch")"
                 if [ "$?" != 0 ]; then
