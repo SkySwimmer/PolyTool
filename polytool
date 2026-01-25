@@ -62,7 +62,7 @@ if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit
         echo "Downloading PolyTool $targetpretty..."
 
         # Clone
-        git clone "$url" --branch "$targetbranch" "$projbasedir/.polytool" || exit 1
+        git clone -c advice.detachedHead=false "$url" --branch "$targetbranch" "$projbasedir/.polytool" || exit 1
         
         # Enter polytool
         cd "$projbasedir/.polytool"
@@ -89,13 +89,30 @@ if [ "$currentver" != "$storedver" ] || ([ "$tag" == "undefined" ] && [ "$commit
         git fetch || exit 1
 
         # Check branch switch
+        wasDetached=false
         branchcurrent="$(git rev-parse --abbrev-ref HEAD)"
+        if [ "$?" != 0 ]; then
+            exit 1
+        fi
+        if [ "$branchcurrent" == "HEAD" ]; then
+            wasDetached=true
+            branchcurrent="$(git describe --tags --abbrev=0)"
+            if [ "$?" != 0 ]; then
+                exit 1
+            fi
+        fi
+
+        # Checkout if needed
         if [ "$branchcurrent" != "$targetbranch" ]; then
-            git checkout "$targetbranch" || exit 1
+            git -c advice.detachedHead=false checkout "$targetbranch" || exit 1
+            wasDetached=false
+            if [ "$tag" != "undefined" ]; then
+                wasDetached=true
+            fi
         fi
 
         # Pull if needed
-        if [ "$tag" == "undefined" ]; then
+        if [ "$tag" == "undefined" ] && [ "$wasDetached" == false ]; then
             remote="$(git remote)"
             upstreamcommit="$(git rev-parse "$remote/$targetbranch")"
             if [ "$upstreamcommit" != "$currentcommit" ]; then
