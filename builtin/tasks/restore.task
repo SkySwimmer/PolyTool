@@ -216,9 +216,13 @@ function restore_run() {
                 local currentBaseProject="$BASEPROJECT"
                 local currentBaseBuild="$BASEBUILDDIR"
                 local currentBaseId="$BASEPROJECTID"
+                local currentBaseVersion="$BASEPROJECTVERSION"
+                local currentBaseGroup="$BASEPROJECTGROUP"
                 local currentProjectId="$LOCALPROJECTID"
                 local currentProjectBuild="$BUILDDIR"
                 local currentProject="$LOCALPROJECT"
+                local currentProjectVersion="$LOCALPROJECTVERSION"
+                local currentProjectGroup="$LOCALPROJECTVERSION"
                 local currentLocalProperties=("${LOCALPROPERTIES[@]}")
 
                 # Prepare paths
@@ -230,12 +234,16 @@ function restore_run() {
                 # Get current base
                 local baseProject="$BASEPROJECT"
                 local baseProjectId="$BASEPROJECTID"
+                local baseProjectVersion="$BASEPROJECTVERSION"
+                local baseProjectGroup="$BASEPROJECTGROUP"
                 local baseBuild="$BASEBUILDDIR"
 
                 # Unset, dependencies each are treated as a base
                 BASEPROJECT=undefined
                 BASEPROJECTID=undefined
                 BASEBUILDDIR=undefined
+                BASEPROJECTVERSION=undefined
+                BASEPROJECTGROUP=undefined
                 
                 # Try loading it
                 name="dependency $pathName"
@@ -246,6 +254,8 @@ function restore_run() {
                 BASEPROJECT="$baseProject"
                 BASEPROJECTID="$baseProjectId"
                 BASEBUILDDIR="$baseBuild"
+                BASEPROJECTVERSION="$baseProjectVersion"
+                BASEPROJECTGROUP="$baseProjectGroup"
                 local loadedId="$id"
 
                 # Loaded successfully
@@ -256,7 +266,11 @@ function restore_run() {
                 BASEPROJECT="$currentBaseProject"
                 BASEBUILDDIR="$currentBaseBuild"
                 BASEPROJECTID="$currentBaseId"
+                BASEPROJECTVERSION="$currentBaseVersion"
+                BASEPROJECTGROUP="$currentBaseGroup"
                 LOCALPROJECTID="$currentProjectId"
+                LOCALPROJECTVERSION="$currentProjectVersion"
+                LOCALPROJECTGROUP="$currentProjectGroup"
                 BUILDDIR="$currentProjectBuild"
                 LOCALPROJECT="$currentProject"
                 LOCALPROPERTIES=("${currentLocalProperties[@]}")

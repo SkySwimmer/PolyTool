@@ -64,13 +64,27 @@ function loadProject() {
     if [ "$name" != "$(basename "$projectRealDir")" ]; then
         projectName="$name"
     fi
-    if [ "$ROOTPROJECT" == "undefined" ]; then
+    if [ "$ROOTPROJECTID" == "undefined" ]; then
         ROOTPROJECTID="$id"
     fi
     if [ "$BASEPROJECTID" == "undefined" ]; then
         BASEPROJECTID="$id"
     fi
     LOCALPROJECTID="$id"
+    if [ "$ROOTPROJECTVERSION" == "undefined" ]; then
+        ROOTPROJECTVERSION="$version"
+    fi
+    if [ "$BASEPROJECTVERSION" == "undefined" ]; then
+        BASEPROJECTVERSION="$version"
+    fi
+    if [ "$ROOTPROJECTGROUP" == "undefined" ]; then
+        ROOTPROJECTGROUP="$group"
+    fi
+    if [ "$BASEPROJECTGROUP" == "undefined" ]; then
+        BASEPROJECTGROUP="$group"
+    fi
+    LOCALPROJECTVERSION="$version"
+    LOCALPROJECTGROUP="$group"
 
     # Check if loaded
     # This is done post-sourcing so the project properties are still as expected
@@ -134,6 +148,12 @@ function loadProject() {
     # Create project entry
     projects+=(
         ["$id"]="$projectRealDir"
+    )
+    projectsGroups+=(
+        ["$id"]="$group"
+    )
+    projectsVersions+=(
+        ["$id"]="$version"
     )
     projectsByDir+=(
         ["$projectRealDir"]="$id"
@@ -201,12 +221,16 @@ function loadProject() {
                 # Get current base
                 local baseProject="$BASEPROJECT"
                 local baseProjectId="$BASEPROJECTID"
+                local baseProjectVersion="$BASEPROJECTVERSION"
+                local baseProjectGroup="$BASEPROJECTGROUP"
                 local baseBuild="$BASEBUILDDIR"
 
                 # Unset, dependencies each are treated as a base
                 BASEPROJECT=undefined
                 BASEPROJECTID=undefined
                 BASEBUILDDIR=undefined
+                BASEPROJECTVERSION=undefined
+                BASEPROJECTGROUP=undefined
                 
                 # Try loading it
                 name="dependency $pathName"
@@ -217,6 +241,8 @@ function loadProject() {
                 BASEPROJECT="$baseProject"
                 BASEPROJECTID="$baseProjectId"
                 BASEBUILDDIR="$baseBuild"
+                BASEPROJECTVERSION="$baseProjectVersion"
+                BASEPROJECTGROUP="$baseProjectGroup"
 
                 # Loaded successfully
                 # Add project to list
@@ -253,6 +279,8 @@ function loadProject() {
     fi
     LOCALPROJECTID="$id"
     LOCALPROJECT="$projectRealDir"
+    LOCALPROJECTVERSION="$version"
+    LOCALPROJECTGROUP="$group"
     BUILDDIR="$projectRealDir/build"
 
     # Load sub projects
@@ -310,6 +338,8 @@ function loadProject() {
     fi
     LOCALPROJECTID="$id"
     LOCALPROJECT="$projectRealDir"
+    LOCALPROJECTVERSION="$version"
+    LOCALPROJECTGROUP="$group"
     BUILDDIR="$projectRealDir/build"
 
     # Call load callback
@@ -359,7 +389,9 @@ function runLocalToProject() {
     local currentBaseProject="$BASEPROJECT"
     local currentBaseBuild="$BASEBUILDDIR"
     local currentBaseId="$BASEPROJECTID"
-    local currentProjectId="$LOCALPROJECTID"
+    local currentBaseVersion="$BASEPROJECTVERSION"
+    local currentBaseGroup="$BASEPROJECTGROUP"
+    local currentProjectId="$LOCALPROJECTID"c
     local currentProjectBuild="$BUILDDIR"
     local currentProject="$LOCALPROJECT"
     local currentLocalProperties=("${LOCALPROPERTIES[@]}")
@@ -369,7 +401,11 @@ function runLocalToProject() {
     BASEPROJECT="$baseForProject"
     BASEBUILDDIR="$baseBuildForProject"
     BASEPROJECTID="$baseIdForProject"
+    BASEPROJECTVERSION="${projectsVersions["$BASEPROJECTID"]}"
+    BASEPROJECTGROUP="${projectsGroups["$BASEPROJECTID"]}"
     LOCALPROJECTID="$project"
+    LOCALPROJECTVERSION="${projectsVersions["$project"]}"
+    LOCALPROJECTGROUP="${projectsGroups["$project"]}"
     BUILDDIR="$projectPath/build"
     LOCALPROJECT="$projectPath"
     eval 'LOCALPROPERTIES=("${locals_'"$setId"'[@]}")'
@@ -382,7 +418,11 @@ function runLocalToProject() {
     BASEPROJECT="$currentBaseProject"
     BASEBUILDDIR="$currentBaseBuild"
     BASEPROJECTID="$currentBaseId"
+    BASEPROJECTVERSION="$currentBaseVersion"
+    BASEPROJECTGROUP="$currentBaseGroup"
     LOCALPROJECTID="$currentProjectId"
+    LOCALPROJECTVERSION="$currentProjectVersion"
+    LOCALPROJECTGROUP="$currentProjectGroup"
     BUILDDIR="$currentProjectBuild"
     LOCALPROJECT="$currentProject"
     LOCALPROPERTIES=("${currentLocalProperties[@]}")
