@@ -136,6 +136,7 @@ function loadProject() {
     while arrayContains "$setId" setIds ; do
         setId="$(uuidgen | sed "s/-//g")"
     done
+    setIds+=("$setId")
     eval 'declare -g '"dependencies_$setId"'=()'
     eval 'declare -g '"subprojects_$setId"'=()'
     eval 'declare -g '"locals_$setId"'=()'

@@ -19,13 +19,13 @@ function allExecuteRunner() {
     
     # First use the local project
     taskFound=false
-    taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "$runnerArgs"
+    taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit
     fi
     if [ "$baseProjectId" != "$localProjectId" ]; then
-        taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "$runnerArgs"
+        taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -39,13 +39,13 @@ function allExecuteRunner() {
     fi
 
     # Call run
-    taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "$runnerArgs"
+    taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit
     fi
     if [ "$baseProjectId" != "$localProjectId" ]; then
-        taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "$runnerArgs"
+        taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -53,13 +53,13 @@ function allExecuteRunner() {
     fi
 
     # Call run
-    taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "$runnerArgs"
+    taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit
     fi
     if [ "$baseProjectId" != "$localProjectId" ];then
-        taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "$runnerArgs"
+        taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -98,6 +98,9 @@ function taskRunnerProjectAllPrepare() {
         # Add
         TASKSBEINGRUN_PREPARE+=("$projectId-$task")
     fi
+
+    # Initialize tasks, this will also deal with base projects and root projects
+    runLocalToProject "$projectId" environmentPrepareProjectTasks "$task" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
     # Box recursion list
     # We basically copy the list, making it stack-sensitive
@@ -536,6 +539,10 @@ function execTasksAllPrepare() {
                 return 0
             fi
             CALLINGTASKSLIST+=("$tasksDir/$task.task")
+
+            # Found task
+            # Run pre-tasks
+            tasksDependenciesExecPre "$task" "$isProject" "$projectId" "$projectDir" || return 1
         
             # Show log
             if [ "$isProject" == true ]; then
@@ -742,6 +749,9 @@ function execTasksAllFinish() {
             unset -f "${task}_finish"
             unset -f "${task}_define"
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
+
+            # Run post-tasks
+            tasksDependenciesExecPost "$task" "$isProject" "$projectId" "$projectDir" || return 1
 
             # Return
             return $exit
