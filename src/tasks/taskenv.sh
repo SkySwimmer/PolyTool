@@ -4,6 +4,13 @@ function callTaskClearStack() {
     # Task caller function
     local args=("$@")
 
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callTaskClearStack"
+        printStackTrace 1
+        exit 1
+    fi
+
     # Parse command
     local task="$1"
     local taskParams=()
@@ -31,6 +38,13 @@ function callTaskClearStack() {
 function callTaskForcedClearStack() {
     # Task caller function
     local args=("$@")
+
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callTaskForcedClearStack"
+        printStackTrace 1
+        exit 1
+    fi
 
     # Parse command
     local task="$1"
@@ -60,6 +74,13 @@ function callSingleTaskClearStack() {
     # Task caller function
     local args=("$@")
 
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callSingleTaskClearStack"
+        printStackTrace 1
+        exit 1
+    fi
+
     # Parse command
     local task="$1"
     local taskParams=()
@@ -87,6 +108,13 @@ function callSingleTaskClearStack() {
 function callSingleTaskForcedClearStack() {
     # Task caller function
     local args=("$@")
+
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callSingleTaskForcedClearStack"
+        printStackTrace 1
+        exit 1
+    fi
 
     # Parse command
     local task="$1"
@@ -116,6 +144,13 @@ function callTask() {
     # Task caller function
     local args=("$@")
 
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callTask"
+        printStackTrace 1
+        exit 1
+    fi
+
     # Parse command
     local task="$1"
     local taskParams=()
@@ -134,6 +169,13 @@ function callTask() {
 function callTaskForced() {
     # Task caller function
     local args=("$@")
+
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callTaskForced"
+        printStackTrace 1
+        exit 1
+    fi
 
     # Parse command
     local task="$1"
@@ -154,6 +196,13 @@ function callSingleTask() {
     # Task caller function
     local args=("$@")
 
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callSingleTask"
+        printStackTrace 1
+        exit 1
+    fi
+    
     # Parse command
     local task="$1"
     local taskParams=()
@@ -173,6 +222,13 @@ function callSingleTaskForced() {
     # Task caller function
     local args=("$@")
 
+    # Check
+    if [ "$1" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in callSingleTaskForced"
+        printStackTrace 1
+        exit 1
+    fi
+    
     # Parse command
     local task="$1"
     local taskParams=()

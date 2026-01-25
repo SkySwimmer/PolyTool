@@ -332,6 +332,9 @@ function preparePolyFileEnvironment() {
 function runLocalToProject() {
     local args=("$@")
 
+    # Get cwd
+    local currentCwd="$PWD"
+
     # Parse command
     local project="$1"
     local function="$2"
@@ -345,6 +348,9 @@ function runLocalToProject() {
         crash "Call error: project not recognized: $project"
         return 1
     fi
+
+    # Go to target cwd
+    cd "$projectPath"
 
     # Get project properties
     local baseForProject="${projectsBaseProject["$project"]}"
@@ -380,5 +386,10 @@ function runLocalToProject() {
     BUILDDIR="$currentProjectBuild"
     LOCALPROJECT="$currentProject"
     LOCALPROPERTIES=("${currentLocalProperties[@]}")
+
+    # Return cwd
+    cd "$currentCwd"
+
+    # Return
     return $exit
 }
