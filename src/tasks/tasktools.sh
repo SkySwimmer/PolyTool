@@ -6,7 +6,7 @@ function runTask() {
     # Parse
     local task="$1"    
     local taskArgs=()
-    arrayCopyOfRange args taskArgs 2 "${#args[@]}"
+    arrayCopyOfRange args taskArgs 1 "${#args[@]}"
 
     # Run
     runTaskWithRunnerIfNeeded "$task" "allExecuteRunner" "${taskArgs[@]}"

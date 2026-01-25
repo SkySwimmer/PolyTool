@@ -413,6 +413,46 @@ function cleanTaskEnvironment() {
     # FIXME    
 }
 
+function requireTask() {
+    local task="$1"
+    if [ "$task" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in requireTask"
+        printStackTrace 1
+        return 1
+    fi
+    dependsList+=("$task")
+}
+
+function addTaskTo() {
+    local task="$1"
+    if [ "$task" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in requireTask"
+        printStackTrace 1
+        return 1
+    fi
+    loadOntoList+=("$task")
+}
+
+function afterTask() {
+    local task="$1"
+    if [ "$task" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in afterTask"
+        printStackTrace 1
+        return 1
+    fi
+    loadAfterList+=("$task")
+}
+
+function beforeTask() {
+    local task="$1"
+    if [ "$task" == "" ]; then
+        1>&2 echo "Error: missing argument 'task' in beforeTask"
+        printStackTrace 1
+        return 1
+    fi
+    loadBeforeList+=("$task")
+}
+
 function setupTaskDefineEnvironment() {
     local args=("$@")
 
@@ -487,4 +527,3 @@ function cleanTaskDefineEnvironment() {
     unset allowMultiExecute
     unset runtimeTaskShared
 }
-

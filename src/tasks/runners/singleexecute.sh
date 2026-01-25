@@ -19,7 +19,7 @@ function singleExecuteRunner() {
 
     # First use the local project
     taskFound=false
-    taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "$runnerArgs"
+    taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit
@@ -28,7 +28,7 @@ function singleExecuteRunner() {
         return $exit
     fi
     if [ "$baseProjectId" != "$localProjectId" ]; then
-        taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "$runnerArgs"
+        taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$baseProjectId" "$baseProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -38,7 +38,7 @@ function singleExecuteRunner() {
         fi
     fi
     if [ "$rootProjectId" != "$localProjectId" ]; then
-        taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$rootProjectId" "$rootProjectDir" "$runnerArgs"
+        taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$rootProjectId" "$rootProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -79,6 +79,9 @@ function taskRunnerProjectSingle() {
             return 0
         fi
     fi
+
+    # Initialize tasks, this will also deal with base projects and root projects
+    runLocalToProject "$projectId" environmentPrepareProjectTasks "$task" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
     # Add to task history
     if ! arrayContains "$projectId-$task" TASKSBEINGRUN_PREPARE; then
@@ -282,6 +285,10 @@ function execTasksSingle() {
             fi
             CALLINGTASKSLIST+=("$tasksDir/$task.task")
         
+            # Found task
+            # Run pre-tasks
+            tasksDependenciesExecPre "$task" "$isProject" "$projectId" "$projectDir" || return 1
+            
             # Show log
             if [ "$isProject" == true ]; then
                 echo "> $projectId:$task in $LOCALPROJECTID : PREPARE"
@@ -369,6 +376,10 @@ function execTasksSingle() {
             unset -f "${task}_define"
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
+            # Found task
+            # Run post-tasks
+            tasksDependenciesExecPost "$task" "$isProject" "$projectId" "$projectDir" || return 1
+            
             # Return
             return $exit
         fi
