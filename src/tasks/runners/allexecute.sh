@@ -128,7 +128,7 @@ function taskRunnerProjectAllPrepare() {
     fi
 
     # Find task
-    execTasksAllPrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    runLocalToProject "$projectId" execTasksAllPrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
 
     # Add to task list
@@ -288,7 +288,7 @@ function taskRunnerProjectAllRun() {
     fi
 
     # Find task
-    execTasksAllRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    runLocalToProject "$projectId" execTasksAllRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -429,7 +429,7 @@ function taskRunnerProjectAllFinish() {
     fi
 
     # Find task
-    execTasksAllFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    runLocalToProject "$projectId" execTasksAllFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
