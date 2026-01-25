@@ -187,10 +187,9 @@ function tasksDependenciesExecPre() {
         eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         
         # Run the loadBefore tasks
-        for task in "${loadAfterList[@]}"; do
-            if [ "$task" != "" ]; then
-                echo "$task AA"
-                callTask "$task" || return 1
+        for tsk in "${loadAfterList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                callTask "$tsk" || return 1
             fi
         done
     fi
@@ -222,9 +221,9 @@ function tasksDependenciesExecPost() {
         eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         
         # Run the loadBefore tasks
-        for task in "${loadBeforeList[@]}"; do
-            if [ "$task" != "" ]; then
-                callTask "$task" || return 1
+        for tsk in "${loadBeforeList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                callTask "$tsk" || return 1
             fi
         done
     fi
