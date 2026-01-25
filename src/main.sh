@@ -222,7 +222,7 @@ function main() {
                 # Run task
                 hadTask=true
                 taskFound=false
-                runLocalToProject "$relativeToProject" runTask "$lastTask" "${taskParams}"
+                runLocalToProject "$relativeToProject" runTask "$lastTask" "${taskParams[@]}"
                 arg="$argBak"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
@@ -243,6 +243,7 @@ function main() {
                 fi
                 lastTask=""
                 taskParams=()
+                relativeToProject="$ROOTPROJECTID"
             fi
 
             # Mark last task, so when argument
@@ -258,7 +259,7 @@ function main() {
         # Run task
         hadTask=true
         taskFound=false
-        runLocalToProject "$relativeToProject" runTask "$lastTask" "${taskParams}"
+        runLocalToProject "$relativeToProject" runTask "$lastTask" "${taskParams[@]}"
         exit=$?
         if [ "$exit" != 0 ]; then
             # Handle error exit
