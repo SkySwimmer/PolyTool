@@ -261,7 +261,7 @@ function taskRunnerProjectRelativeRun() {
     done
 
     # Find task
-    execTasksAllRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    execTasksRelativeRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -306,7 +306,7 @@ function taskRunnerProjectRelativeRun() {
             CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksAllRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            runLocalToProject "$projectId" execTasksRelativeRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
@@ -399,7 +399,7 @@ function taskRunnerProjectRelativeFinish() {
     done
 
     # Find task
-    execTasksAllFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    execTasksRelativeFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -445,7 +445,7 @@ function taskRunnerProjectRelativeFinish() {
             CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksAllFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            runLocalToProject "$projectId" execTasksRelativeFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
@@ -576,7 +576,7 @@ function execTasksRelativePrepare() {
     fi
 }
 
-function execTasksAllRun() {
+function execTasksRelativeRun() {
     local args=("$@")
 
     # Parse command
@@ -646,7 +646,7 @@ function execTasksAllRun() {
     fi
 }
 
-function execTasksAllFinish() {
+function execTasksRelativeFinish() {
     local args=("$@")
 
     # Parse command
