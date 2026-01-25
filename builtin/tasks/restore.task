@@ -22,7 +22,7 @@ function restore_run() {
             source "$path" || loadDependencyError "$depFilePretty"
 
             # Load overload
-            local localOverload="$projectRealDir/polylocal/dependencies/$(basename "$path")"
+            local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
@@ -121,7 +121,7 @@ function restore_run() {
             source "$path" || loadDependencyError "$depFilePretty"
 
             # Load overload
-            local localOverload="$projectRealDir/polylocal/dependencies/$(basename "$path")"
+            local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi

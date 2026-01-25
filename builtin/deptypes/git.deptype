@@ -106,7 +106,7 @@ function git_deptype_restore() {
                 fi
 
                 # Check
-                if [ "$commitnow" != "$currentcommit" ]; then 
+                if [ "$upstreamcommit" != "$currentcommit" ]; then 
                     updateNeeded=true
                 fi
             fi
