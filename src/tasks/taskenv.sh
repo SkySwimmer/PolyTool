@@ -21,6 +21,7 @@ function callTaskClearStack() {
     CALLINGTASKSLIST=()
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "$@"
     local result=$?
 
@@ -29,9 +30,15 @@ function callTaskClearStack() {
 
     # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -56,6 +63,7 @@ function callTaskForcedClearStack() {
     CALLINGTASKSLIST=()
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunner "$task" relativeExecuteRunner "$@"
     local result=$?
 
@@ -64,9 +72,15 @@ function callTaskForcedClearStack() {
 
     # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -91,6 +105,7 @@ function callSingleTaskClearStack() {
     CALLINGTASKSLIST=()
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "$@"
     local result=$?
 
@@ -99,9 +114,15 @@ function callSingleTaskClearStack() {
 
     # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -126,6 +147,7 @@ function callSingleTaskForcedClearStack() {
     CALLINGTASKSLIST=()
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunner "$task" singleExecuteRunner "$@"
     local result=$?
 
@@ -134,9 +156,15 @@ function callSingleTaskForcedClearStack() {
 
     # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -157,12 +185,21 @@ function callTask() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "$@"
     local result=$?
+
+    # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -183,12 +220,21 @@ function callTaskForced() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunner "$task" relativeExecuteRunner "$@"
     local result=$?
+    
+    # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -209,12 +255,21 @@ function callSingleTask() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "$@"
     local result=$?
+    
+    # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
@@ -235,12 +290,21 @@ function callSingleTaskForced() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    taskFound=false
     runTaskWithRunner "$task" singleExecuteRunner "$@"
     local result=$?
+    
+    # Handle
     if [ "$result" != 0 ]; then
-        1>&2 echo "Error: task not recognized: $task"
-        printStackTrace 1
-        return 1
+        if [ "$taskFound" != true ]; then
+            1>&2 echo "Error: task not recognized: $task"
+            printStackTrace 1
+            return 1
+        else
+            1>&2 echo "Error: task exited with non-zero exit code"
+            printStackTrace 1
+            return $result
+        fi
     fi
 }
 
