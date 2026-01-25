@@ -49,8 +49,11 @@ function arrayExecOnceWithKey {
     # Check
     if ! arrayContains "$key" "$array" ; then
         # Run
-        eval "$array+=(\"$key\")"
         runFunctionSafe "$function" "${functionParams[@]}"
-        return $?
+        local exit=$?
+        if [ "$exit" == 0 ]; then
+            eval "$array+=(\"$key\")"
+        fi
+        return $exit
     fi
 }

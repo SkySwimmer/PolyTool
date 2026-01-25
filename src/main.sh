@@ -35,7 +35,6 @@ function main() {
     # FIXME: set up    
 
     # FIXME tests
-    runLocalToProject testsub runTaskWithRunnerIfNeeded test singleExecuteRunnerRelativeToProject
-    runLocalToProject testsub runTaskWithRunnerIfNeeded test singleExecuteRunnerRelativeToProject
-    runTaskWithRunner test singleExecuteRunnerRelativeToProject
+    runLocalToProject testsub runTaskWithRunnerIfNeeded test allExecuteRunner "$@"
+    runTaskWithRunner test allExecuteRunner "$@"
 }

@@ -2,6 +2,9 @@
 
 function printStackTrace() {
     local i=0
+    if [ "$1" != "" ]; then
+        i=$1
+    fi
     while : ; do
         local callStackEntry="$(caller "$i")"
         if [ "$callStackEntry" == "" ]; then
@@ -45,6 +48,7 @@ function runFunctionSafe() {
 
     if type "$function" &>/dev/null ; then
         "$function" "${functionParams[@]}"
+        return $?
     else
         crash "Call error: function $function is not defined"
         return 1

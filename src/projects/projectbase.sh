@@ -48,7 +48,7 @@ function loadProject() {
     if [ "$ROOTPROJECT" == "undefined" ]; then
         ROOTPROJECTID="$id"
     fi
-    if [ "$BASEPROJECT" == "undefined" ]; then
+    if [ "$BASEPROJECTID" == "undefined" ]; then
         BASEPROJECTID="$id"
     fi
     LOCALPROJECTID="$id"
@@ -267,7 +267,7 @@ function runLocalToProject() {
 
     # Call
     runFunctionSafe "$function" "${functionParams[@]}"
-    exit=$?
+    local exit=$?
     
     # Restore
     BASEPROJECT="$currentBaseProject"

@@ -1,11 +1,26 @@
 #!/bin/bash
 
 function test_run() {
+    local args=("$@")
+
     echo Test!
+    echo
     echo $LOCALPROJECT
     echo $BASEPROJECT
     echo $ROOTPROJECT
+    echo
+    echo $LOCALPROJECTID
+    echo $BASEPROJECTID
+    echo $ROOTPROJECTID
+    echo
     echo $BUILDDIR
     echo $BASEBUILDDIR
     echo $ROOTBUILDDIR   
+    echo
+    echo $1
+    echo $2
+    echo $3
+
+    # Test task
+    callTask test2task
 }
