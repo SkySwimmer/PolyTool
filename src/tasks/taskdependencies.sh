@@ -296,9 +296,9 @@ function onPrepareTaskFound_Init() {
     fi
 
     # Create dependency lists
-    local setId="$(uuidgen | sed "s/-//g")"
+    local setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
     while arrayContains "$setId" setIds ; do
-        setId="$(uuidgen | sed "s/-//g")"
+        setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
     done
     setIds+=("$setId")
     TASKS_DEPENDENCY_LIST_IDS+=(["$taskKey"]="$setId")

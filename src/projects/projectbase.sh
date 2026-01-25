@@ -1,7 +1,5 @@
 #!/bin/bash
 
-requiredCommands+=("uuidgen")
-
 function loadProject() {
     # Setup
     local projectDir="$1"
@@ -132,9 +130,9 @@ function loadProject() {
     fi
 
     # Create lists
-    local setId="$(uuidgen | sed "s/-//g")"
+    local setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
     while arrayContains "$setId" setIds ; do
-        setId="$(uuidgen | sed "s/-//g")"
+        setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
     done
     setIds+=("$setId")
     eval 'declare -g '"dependencies_$setId"'=()'
