@@ -1,0 +1,11 @@
+#!/bin/bash
+
+function test_define() {
+    allowMultiExecute=true
+}
+
+function test_run() {
+    local args=("$@")
+
+    echo Test!
+}
