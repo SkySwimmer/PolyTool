@@ -173,6 +173,7 @@ function git_deptype_restore() {
                     fi
                 fi
             fi
+            
             # Reset
             if [ "$commit" != "undefined" ] && [ "$tag" == "undefined" ]; then
                 # Get current commit
