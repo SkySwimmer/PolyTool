@@ -22,7 +22,7 @@ function callTaskClearStack() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "$@"
+    runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
@@ -64,7 +64,7 @@ function callTaskForcedClearStack() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunner "$task" relativeExecuteRunner "$@"
+    runTaskWithRunner "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
@@ -106,7 +106,7 @@ function callSingleTaskClearStack() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "$@"
+    runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
@@ -148,7 +148,7 @@ function callSingleTaskForcedClearStack() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunner "$task" singleExecuteRunner "$@"
+    runTaskWithRunner "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
@@ -186,7 +186,7 @@ function callTask() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "$@"
+    runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Handle
@@ -221,7 +221,7 @@ function callTaskForced() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunner "$task" relativeExecuteRunner "$@"
+    runTaskWithRunner "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
     
     # Handle
@@ -256,7 +256,7 @@ function callSingleTask() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "$@"
+    runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
     
     # Handle
@@ -291,7 +291,7 @@ function callSingleTaskForced() {
 
     # Run task if needed
     taskFound=false
-    runTaskWithRunner "$task" singleExecuteRunner "$@"
+    runTaskWithRunner "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
     
     # Handle
