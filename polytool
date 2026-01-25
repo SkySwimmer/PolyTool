@@ -31,6 +31,9 @@ tag=undefined
 if [ -f "$projbasedir/polytool.properties" ]; then
     source "$projbasedir/polytool.properties"
 fi
+if [ -f "$projbasedir/polylocal/polytool.properties" ]; then
+    source "$projbasedir/polylocal/polytool.properties"
+fi
 
 # Handle new runs and whenever the polytool repo is deleted
 if [ ! -d "$projbasedir/.polytool" ]; then
