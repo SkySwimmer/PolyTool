@@ -1,8 +1,11 @@
 #!/bin/bash
 
 function git_deptype_define() {
-    # Empty
-    :
+    # Check if git is installed
+    if ! checkInstalled git ; then
+        1>&2 echo "Error: Unable to restore! Git is not installed, please make sure to install git and have it available on the PATH."
+        return 1
+    fi
 }
 
 function git_deptype_setupEnvironment() {
@@ -17,13 +20,221 @@ function git_deptype_syntaxVerify() {
         1>&2 echo Error: missing 'url' statement in dependency file
         return 1
     fi
+    if [ "$tag" == "undefined" ] && [ "$branch" == "undefined" ]; then 
+        1>&2 echo Error: no clue what to fetch, please select a branch or tag
+        return 1
+    fi
     return 0
 }
 
 function git_deptype_restore() {
+    # Figure out which branch to use
+    local targetbranch="$branch"
+    local targetpretty="Latest from branch $branch"
+    local versionPretty="latest from branch $branch"
+    if [ "$targetbranch" == "undefined" ]; then
+        targetbranch=""
+        targetpretty="Latest from default branch"
+        versionPretty="latest from default branch"
+    fi
+    if [ "$tag" != "undefined" ]; then
+        targetbranch="$tag"
+        targetpretty="Tag $tag"
+        versionPretty="$tag"
+    fi
+    if [ "$commit" != "undefined" ] && [ "$tag" == "undefined" ]; then
+        targetpretty="Commit $commit from branch $branch"
+        versionPretty="$commit"
+    fi
+
+    # Get output
+    local dirFriendly="${projectsDirFriendly["$LOCALPROJECTID"]}"
+    local outputPath="$LOCALPROJECT/$output"
+    local outputPathPretty="$dirFriendly/$output"
+
+    # Prepare to change directory
+    local pwd="$PWD"
+
+    # Get current repo info
+    local branchcurrent=""
+    local currentcommit=""
+    local upstreamcommit=""
+    local updateNeeded=false
+    local updateApplied=false
+    if [ -d "$outputPath" ]; then
+        # Go to repository
+        cd "$outputPath"
+
+        # Get current
+        local wasDetached=false
+        branchcurrent="$(git rev-parse --abbrev-ref HEAD)"
+        if [ "$?" != 0 ]; then
+            gitRestoreFail
+            return 1
+        fi
+        if [ "$branchcurrent" == "HEAD" ]; then
+            wasDetached=true
+            branchcurrent="$(git describe --tags --abbrev=0)"
+            if [ "$?" != 0 ]; then
+                gitRestoreFail
+                return 1
+            fi
+        fi
+        currentcommit="$(git rev-parse HEAD)"
+        if [ "$?" != 0 ]; then
+            gitRestoreFail
+            return 1
+        fi
+
+        # Check target branch
+        if [ "$targetbranch" != "$branchcurrent" ]; then
+            # Update required, branch changed
+            updateNeeded=true
+        else
+            # Check commit
+            remote="$(git remote)"
+            if [ "$?" != 0 ]; then
+                gitRestoreFail
+                return 1
+            fi
+            if [ "$tag" == "undefined" ] &&  [ "$wasDetached" == false ]; then
+                # Get upstream commit
+                upstreamcommit="$(git rev-parse "$remote/$targetbranch")"
+                if [ "$?" != 0 ]; then
+                    gitRestoreFail
+                    return 1
+                fi
+
+                # Check
+                if [ "$commitnow" != "$currentcommit" ]; then 
+                    updateNeeded=true
+                fi
+            fi
+        fi
+
+        # Return to old pwd
+        cd "$pwd"
+    else
+        # Doesnt exsit yet
+        updateNeeded=true
+    fi
+    
+
     # Restore logic
-    echo ">>> Restoring Git project $id from URL $url..."
+    if [ "$updateNeeded" == true ]; then
+        echo ">>> Restoring Git project $id from URL $url into $outputPathPretty..."
+        if [ -d "$outputPath" ]; then
+            # Update to existing repository
+
+            # Change CWD
+            cd "$outputPath"
+
+            # Fetch
+            echo ">>> Fetching upstream..."
+            if ! git fetch; then
+                gitRestoreFail
+                return 1
+            fi
+
+            # Switch branch if needed
+            if [ "$targetbranch" != "$branchcurrent" ]; then
+                # Switch branch
+                echo ">>> Switching branch to $targetbranch..."
+                if ! git -c advice.detachedHead=false checkout "$targetbranch"; then
+                    gitRestoreFail
+                    return 1
+                fi
+                updateApplied=true
+            fi
+
+            # Pull if needed
+            if [ "$tag" == "undefined" ]; then
+                remote="$(git remote)"
+                if [ "$?" != 0 ]; then
+                    gitRestoreFail
+                    return 1
+                fi
+                upstreamcommit="$(git rev-parse "$remote/$targetbranch")"
+                if [ "$?" != 0 ]; then
+                    gitRestoreFail
+                    return 1
+                fi
+                if [ "$upstreamcommit" != "$currentcommit" ]; then
+                    echo ">>> Pulling upstream..."
+                    git pull || exit 1  
+                    commitnow="$(git rev-parse HEAD)"
+                    if [ "$?" != 0 ]; then
+                        gitRestoreFail
+                        return 1
+                    fi
+                    if [ "$commitnow" != "$currentcommit" ]; then 
+                        updateApplied=true  
+                        currentcommit="$commitnow"
+                    fi
+                fi
+            fi
+            # Reset
+            if [ "$commit" != "undefined" ] && [ "$tag" == "undefined" ]; then
+                # Get current commit
+                if [ "$currentcommit" != "$commit" ]; then
+                    # Reset
+                    echo ">>> Resetting to commit $commit..."
+                    if ! git reset --hard "$commit" ; then
+                        gitRestoreFail
+                        return 1
+                    fi
+                    updateApplied=true  
+                fi
+            fi
+        else
+            # Clone 
+
+            # Log
+            echo ">>> Cloning $id $targetPretty..."
+
+            # Clone
+            mkdir -p "$outputPath"
+            if ! git clone -c advice.detachedHead=false "$url" --branch "$targetbranch" "$outputPath"; then
+                gitRestoreFail
+                return 1
+            fi
+            
+            # Change CWD            
+            cd "$outputPath" 
+
+            # Reset
+            if [ "$commit" != "undefined" ] && [ "$tag" == "undefined" ]; then
+                # Get current commit
+                currentcommit="$(git rev-parse HEAD)"
+                if [ "$currentcommit" != "$commit" ]; then
+                    # Reset
+                    echo ">>> Resetting to $commit..."
+                    git reset --hard "$commit" || exit 1
+                fi
+            fi
+            updateApplied=true
+        fi
+    fi
+
+    # Return to old pwd
+    cd "$pwd"
+
+    # Result
+    if [ "$updateApplied" == true ]; then
+        echo ">>> Finished! updated to $versionPretty"
+    else
+        echo ">>> Already up to date."
+    fi
+
+    # Return
     return 0
+}
+
+function gitRestoreFail() {
+    cd "$pwd"
+    echo "Error: an error occurred while restoring the project, please review git output."
+    printStackTrace 1
+    return 1
 }
 
 function git_deptype_cleanEnvironment() {
