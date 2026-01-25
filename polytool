@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Splash
+echo "Welcome to polytool! This is a proof of concept, bash-based, implementation of the PolyCraft build helper."
+echo "PolyCraft is a work-in-progress build tool and dependency helper intended to make it easier to work with multi-repository projects and git-based dependencies."
+echo
+echo "Copyright(C) Nexus Developers Group 2026, released under the GPLv2 license."
+echo "You should have received a copy of the license under the .polytool folder of your project if you are using the wrapper."
+
+# Setup
+chmod +x "$0"
+runtimebasedir="$(dirname "$0")"
+
+# Set up environment
+source "$runtimebasedir/src/env.sh"
+
+# Source main source
+function sourceAll() {
+    local dir="$1"
+    for subdir in "$dir"/*/; do
+        if [ -d "$subdir" ]; then
+            sourceAll "$subdir"
+        fi
+    done
+    for file in "$dir"/*; do
+        if [ -f "$file" ]; then
+            source "$(readlink -f "$file")"
+        fi
+    done
+}
+sourceAll "$runtimebasedir/src"
+
+# Run
+echo
+main "$@"
