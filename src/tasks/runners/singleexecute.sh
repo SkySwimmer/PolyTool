@@ -300,9 +300,9 @@ function execTasksSingle() {
             
             # Show log
             if [ "$isProject" == true ]; then
-                echo "> $projectId:$task in $LOCALPROJECTID : PREPARE"
+                echo "> $projectId:$task : $LOCALPROJECTID : PREPARE"
             else
-                echo "> $task in $LOCALPROJECTID : PREPARE"
+                echo "> $task : $LOCALPROJECTID : PREPARE"
             fi
 
             # Get last env
@@ -355,9 +355,9 @@ function execTasksSingle() {
 
             # Show log
             if [ "$isProject" == true ]; then
-                echo "> $projectId:$task in $LOCALPROJECTID : RUN"
+                echo "> $projectId:$task : $LOCALPROJECTID : RUN"
             else
-                echo "> $task in $LOCALPROJECTID : RUN"
+                echo "> $task : $LOCALPROJECTID : RUN"
             fi
 
             # Call run
@@ -376,9 +376,9 @@ function execTasksSingle() {
             if type "${task}_finish" &>/dev/null; then
                 # Show log
                 if [ "$isProject" == true ]; then
-                    echo "> $projectId:$task in $LOCALPROJECTID : FINISH"
+                    echo "> $projectId:$task : $LOCALPROJECTID : FINISH"
                 else
-                    echo "> $task in $LOCALPROJECTID : FINISH"
+                    echo "> $task : $LOCALPROJECTID : FINISH"
                 fi
 
                 runFunctionSafe "${task}_finish" "${runnerArgs[@]}"

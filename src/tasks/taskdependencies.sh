@@ -102,7 +102,7 @@ function resolveTaskInProject() {
 
         # Go through sub projects recursively
         # We stay relative to the current project
-        eval 'subprojectsList=("${'"subprojects_$setId"'[@]}")'
+        eval 'local subprojectsList=("${'"subprojects_$setId"'[@]}")'
         for subProjectId in "${subprojectsList[@]}"; do
             local subProjectDir="${projects["$subProjectId"]}"
 
@@ -116,7 +116,7 @@ function resolveTaskInProject() {
 
         # Go through dependencies recursively
         # We stay relative to the current project
-        eval 'dependenciesList=("${'"dependencies_$setId"'[@]}")'
+        eval 'local dependenciesList=("${'"dependencies_$setId"'[@]}")'
         for depId in "${dependenciesList[@]}"; do
             local depDir="${projects["$depId"]}"
 
@@ -192,10 +192,10 @@ function tasksDependenciesExecPre() {
     local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
     if [ "$setId" != "" ]; then
         # Got sets!
-        eval 'dependsList=("${'"requiresTask_$setId"'[@]}")'
-        eval 'loadOntoList=("${'"addTo_$setId"'[@]}")'
-        eval 'loadAfterList=("${'"afterTask_$setId"'[@]}")'
-        eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         
         # Run the afterTask tasks as the current task wants to be run AFTER those tasks
         for tsk in "${dependsList[@]}"; do
@@ -228,10 +228,10 @@ function tasksDependenciesExecPost() {
     local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
     if [ "$setId" != "" ]; then
         # Got sets!
-        eval 'dependsList=("${'"requiresTask_$setId"'[@]}")'
-        eval 'loadOntoList=("${'"addTo_$setId"'[@]}")'
-        eval 'loadAfterList=("${'"afterTask_$setId"'[@]}")'
-        eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         
         # Run the beforeTask tasks as the current task wants those tasks after the current task
         for tsk in "${dependsList[@]}"; do
@@ -366,10 +366,10 @@ function onPrepareTaskFound_Populate() {
     local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
     if [ "$setId" != "" ]; then        
         # Got sets!
-        eval 'dependsList=("${'"requiresTask_$setId"'[@]}")'
-        eval 'loadOntoList=("${'"addTo_$setId"'[@]}")'
-        eval 'loadAfterList=("${'"afterTask_$setId"'[@]}")'
-        eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         local requiredDependencies=()
         
         # First resolve dependencies
@@ -391,12 +391,20 @@ function onPrepareTaskFound_Populate() {
             fi 
 
             # Resolve
+            eval "requiresTask_$setId"'=("${dependsList[@]}")'
+            eval "addTo_$setId"'=("${loadOntoList[@]}")'
+            eval "afterTask_$setId"'=("${loadAfterList[@]}")'
+            eval "beforeTask_$setId"'=("${loadBeforeList[@]}")'
             resolveTask "$id" resolveTaskAddToTargetCallback "$projectId" "$task" requiresTask "$targetOrderList"
             if [ "$taskResolveFound" != "true" ]; then
                 # Error
                 1>&2 echo "Error: could not resolve dependency task \"$id\" for task \"$task\": task not recognized"
                 exit 1
             fi
+            eval 'dependsList=("${'"requiresTask_$setId"'[@]}")'
+            eval 'loadOntoList=("${'"addTo_$setId"'[@]}")'
+            eval 'loadAfterList=("${'"afterTask_$setId"'[@]}")'
+            eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         done
 
         # Update lists
@@ -430,10 +438,10 @@ function onPrepareTaskFound_Scanner() {
     local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
     if [ "$setId" != "" ]; then        
         # Got sets!
-        eval 'dependsList=("${'"requiresTask_$setId"'[@]}")'
-        eval 'loadOntoList=("${'"addTo_$setId"'[@]}")'
-        eval 'loadAfterList=("${'"afterTask_$setId"'[@]}")'
-        eval 'loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
         local requiredDependencies=()
         
         # First resolve dependencies
@@ -445,7 +453,7 @@ function onPrepareTaskFound_Scanner() {
 
         # Check hard marked required dependencies
         # Finalize them if they lack a order defining entry
-        for id in "${requiredDependencies}" ; do
+        for id in "${requiredDependencies[@]}" ; do
             # If not a load-before, add as load-after (so that the target loads first)
             if ! arrayContains "$id" loadBeforeList && ! arrayContains "$id" loadAfterList; then
                 loadAfterList+=("$id")
@@ -479,7 +487,7 @@ function resolveTaskAddToTargetCallback() {
             # Load
             for targetList in "${targetLists[@]}"; do
                 local targetListInst=()
-                eval 'targetListInst=("${'"${targetList}_$targetSetId"'[@]}")'
+                eval 'local targetListInst=("${'"${targetList}_$targetSetId"'[@]}")'
 
                 # Add
                 targetListInst+=("$sourceProject:$taskToAdd")
@@ -538,7 +546,7 @@ function findAllTasksProject() {
 
     # Go through dependencies recursively
     # We stay relative to the current project
-    eval 'dependenciesList=("${'"dependencies_$setId"'[@]}")'
+    eval 'local dependenciesList=("${'"dependencies_$setId"'[@]}")'
     for depId in "${dependenciesList[@]}"; do
         local depDir="${projects["$depId"]}"
 
@@ -572,7 +580,7 @@ function findAllTasksProject() {
 
     # Go through sub projects recursively
     # We stay relative to the current project
-    eval 'subprojectsList=("${'"subprojects_$setId"'[@]}")'
+    eval 'local subprojectsList=("${'"subprojects_$setId"'[@]}")'
     for subProjectId in "${subprojectsList[@]}"; do
         local subProjectDir="${projects["$subProjectId"]}"
 
