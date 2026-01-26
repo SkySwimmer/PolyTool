@@ -195,7 +195,7 @@ function git_deptype_restore() {
 
             # Clone
             mkdir -p "$outputPath"
-            if ! git clone -c advice.detachedHead=false "$url" --branch "$targetbranch" "$outputPath"; then
+            if ! git clone --recursive -c advice.detachedHead=false "$url" --branch "$targetbranch" "$outputPath"; then
                 gitRestoreFail
                 return 1
             fi
