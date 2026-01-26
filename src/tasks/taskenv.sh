@@ -538,6 +538,7 @@ function setupTaskDefineEnvironment() {
     # Defaults
     allowMultiExecute=false
     runtimeTaskShared=false
+    runRelativeToCallerProject=false
 }
 
 function applyTaskDefineEnvironment() {
@@ -579,6 +580,9 @@ function applyTaskDefineEnvironment() {
             TASKS_PERMITTING_MULTIRUN+=("RUNTIME@$LOCALPROJECTID@$task")
         fi
     fi
+    if [ "$runRelativeToCallerProject" == "true" ]; then
+        TASKS_RELATIVE_TO_CALLER+=("$taskKey")
+    fi
 }
 
 function cleanTaskDefineEnvironment() {
@@ -596,4 +600,5 @@ function cleanTaskDefineEnvironment() {
     # Reset
     unset allowMultiExecute
     unset runtimeTaskShared
+    unset runRelativeToCallerProject
 }

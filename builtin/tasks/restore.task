@@ -241,17 +241,8 @@ function restore_run() {
                 BASEPROJECTGROUP=undefined
                 
                 # Try loading it
-                # Use forced if from root project
-                # Use non-forced when using sparse
                 name="dependency $pathName"
-                local useForce=true
-                if [ "$ROOTPROJECTID" != "$LOCALPROJECTID" ]; then
-                    useForce=false
-                fi
-                if [ "${PARAMETERS["sparse"]}" == "true" ]; then
-                    useForce=false
-                fi
-                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" false "$useForce" false ">>> " ; then
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" false false false ">>> " ; then
                     1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
                     return 1
                 fi

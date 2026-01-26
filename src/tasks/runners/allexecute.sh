@@ -131,7 +131,7 @@ function taskRunnerProjectAllPrepare() {
             local depDir="${projects["$depId"]}"
 
             # Run in dependency
-            runLocalToProject "$depId" taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
                 return $exit
@@ -140,7 +140,7 @@ function taskRunnerProjectAllPrepare() {
     fi
 
     # Find task
-    runLocalToProject "$projectId" execTasksAllPrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllPrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
 
     # Add to task list
@@ -194,7 +194,7 @@ function taskRunnerProjectAllPrepare() {
             CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksAllPrepare "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksAllPrepare "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
@@ -227,7 +227,7 @@ function taskRunnerProjectAllPrepare() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+        taskRunnerProjectAllPrepare "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
@@ -289,7 +289,7 @@ function taskRunnerProjectAllRun() {
             local depDir="${projects["$depId"]}"
 
             # Run in dependency
-            runLocalToProject "$depId" taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
                 # Revert list
@@ -300,7 +300,7 @@ function taskRunnerProjectAllRun() {
     fi
 
     # Find task
-    runLocalToProject "$projectId" execTasksAllRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -345,7 +345,7 @@ function taskRunnerProjectAllRun() {
             CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksAllRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksAllRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
@@ -367,7 +367,7 @@ function taskRunnerProjectAllRun() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+        taskRunnerProjectAllRun "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
@@ -429,7 +429,7 @@ function taskRunnerProjectAllFinish() {
             local depDir="${projects["$depId"]}"
 
             # Run in dependency
-            runLocalToProject "$depId" taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
                 # Revert list
@@ -441,7 +441,7 @@ function taskRunnerProjectAllFinish() {
     fi
 
     # Find task
-    runLocalToProject "$projectId" execTasksAllFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -487,7 +487,7 @@ function taskRunnerProjectAllFinish() {
             CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksAllFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksAllFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
@@ -509,7 +509,7 @@ function taskRunnerProjectAllFinish() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+        taskRunnerProjectAllFinish "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
