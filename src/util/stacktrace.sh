@@ -15,7 +15,7 @@ function printStackTrace() {
         local fileLine="$(echo "$callStackEntry" | sed "s/ .*//g")"
         local fileName="$(echo "$callStackEntry" | sed "s/[0-9]* [^ ]* //g")"
         local functionName="$(echo "$callStackEntry" | sed "s/[0-9]*//g" | sed "s/ //" | sed "s/ .*//g")()"
-        if [ "$functionName" == "main()" ] && [ "$fileName" == "$(readlink -f "$runtimebasedir/polytool")" ]; then
+        if [ "$functionName" == "main()" ] && [ "$(readlink -f "$fileName")" == "$(readlink -f "$runtimebasedir/polytool")" ]; then
             functionName="<entry>"
         fi
         if ([ "$functionName" == "crash()" ] || [ "$functionName" == "runFunctionSafe()" ]) && [ "$fileName" == "$(readlink -f "$runtimebasedir/src/util/stacktrace.sh")" ]; then

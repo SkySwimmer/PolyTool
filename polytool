@@ -10,6 +10,7 @@ echo "You should have received a copy of the license under the .polytool folder 
 # Setup
 chmod +x "$0"
 runtimebasedir="$(dirname "$0")"
+runtimebasedir="$(readlink -f "$runtimebasedir")"
 
 # Set up environment
 source "$runtimebasedir/src/env.sh"
