@@ -243,8 +243,8 @@ function main() {
                 hadTask=true
                 taskFound=false
                 runLocalToProject "$relativeToProject" runTask "$lastTask" "${taskParams[@]}"
-                arg="$argBak"
                 local exit=$?
+                arg="$argBak"
                 if [ "$exit" != 0 ]; then
                     # Handle error exit
                     echo -------------------------

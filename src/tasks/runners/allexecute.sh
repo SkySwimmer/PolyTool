@@ -98,6 +98,9 @@ function taskRunnerProjectAllPrepare() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
@@ -259,6 +262,9 @@ function taskRunnerProjectAllRun() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
@@ -397,6 +403,9 @@ function taskRunnerProjectAllFinish() {
         if arrayContains "$projectId-$task" TASKSBEINGRUN_FINISH && ! arrayContains "$projectId-$task" TASKS_PERMITTING_MULTIRUN; then
             # Already run
             if arrayContains "$projectId-$task" TASKS_FOUND; then
+                taskFound=true
+            fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
                 taskFound=true
             fi
             return 0

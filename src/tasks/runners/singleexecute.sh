@@ -85,6 +85,9 @@ function taskRunnerProjectSingle() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
