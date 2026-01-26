@@ -350,6 +350,7 @@ function setupTaskEnvironment() {
     # Process parameters
     local skip=0
     local i=0
+    local len="${#runnerArgs[@]}"
     for arg in "${runnerArgs[@]}"; do
         # Check argument skip
         if ((skip > 0)); then
