@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function arrayContains {
+function arrayContains() {
     local key="$1"
     local array="$2"
     eval 'local arrIn=("${'"$array"'[@]}")'
@@ -14,7 +14,13 @@ function arrayContains {
     return 1
 }
 
-function arrayCopyOfRange {
+function copyAssociativeArray()  {
+    local array="$1"
+    local target="$2"
+    eval 'for key in "${!'"$array"'[@]}"; do local value="${'"$array"'["$key"]}" ; '"$target"'+=(["$key"]="$value") ; done'
+}
+
+function arrayCopyOfRange() {
     local array="$1"
     local target="$2"
     local start="$3"

@@ -345,7 +345,52 @@ function setupTaskEnvironment() {
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
 
     # Apply local properties to properties
-    PROPERTIES+=("${LOCALPROPERTIES[@]}")
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+
+    # Process parameters
+    local skip=0
+    local i=0
+    for arg in "${runnerArgs[@]}"; do
+        # Check argument skip
+        if ((skip > 0)); then
+            skip=$((skip-1))
+            continue
+        fi
+
+        # Add argument if needed
+        if [ "$arg" == "--" ]; then 
+            # End, rest is plain
+            break
+        elif [[ "$arg" == "--"* ]]; then 
+            # Substring it
+            local key="${arg#*--}"
+            local valuePresent=false
+            local value="true"
+
+            # Check syntax
+            if [[ "$key" == *=* ]]; then
+                value="${key#*=}"
+                key="${key%=*}"
+                valuePresent=true
+            fi
+
+            # Check value
+            local i2=$((i+1))
+            if [ "$valuePresent" != true ] && ((i2 < len)) && [[ "${runnerArgs[$i2]}" != "--"* ]]; then
+                i=$((i+1))
+                skip=$((skip+1))
+                value="${runnerArgs[$i]}"
+                valuePresent=true
+            fi
+
+            # Check key
+            if [ "$key" != "" ]; then
+                PARAMETERS+=(["$key"]="$value")
+            fi
+        fi
+
+        i=$((i+1))
+    done
 
     # Read arguments
     local skip=0

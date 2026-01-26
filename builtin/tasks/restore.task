@@ -7,6 +7,7 @@ function restore_define() {
 
 function restore_run() {
     # Restore project
+    echo ${PARAMETERS["sparse"]}
     local dirFriendly="${projectsDirFriendly["$LOCALPROJECTID"]}"
     for path in "$LOCALPROJECT/dependencies/"*.dep; do
         # Load dependency project if polyfile is present
@@ -199,12 +200,6 @@ function restore_run() {
                 fi
             fi
 
-            # Clean type properties
-            depType="undefined"
-
-            # Clean
-            cleanDependencyEnvironment "$path"
-
             # Check result
             local path="$LOCALPROJECT/$depOutput"
             if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]); then
@@ -223,7 +218,8 @@ function restore_run() {
                 local currentProject="$LOCALPROJECT"
                 local currentProjectVersion="$LOCALPROJECTVERSION"
                 local currentProjectGroup="$LOCALPROJECTVERSION"
-                local currentLocalProperties=("${LOCALPROPERTIES[@]}")
+                declare -A currentLocalProperties=()
+                copyAssociativeArray LOCALPROPERTIES currentLocalProperties
 
                 # Prepare paths
                 local pathName="$(basename "$path")"
@@ -247,7 +243,7 @@ function restore_run() {
                 
                 # Try loading it
                 name="dependency $pathName"
-                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" true ">>> " ; then
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" false true false ">>> " ; then
                     1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
                     return 1
                 fi
@@ -260,7 +256,9 @@ function restore_run() {
 
                 # Loaded successfully
                 # Add project to list
-                eval "dependencies_$setId"'+=("'"$id"'")'
+                if ! arrayContains "$loadedId" "dependencies_$setId"; then
+                    eval "dependencies_$setId"'+=("'"$loadedId"'")'
+                fi
 
                 # Restore environment
                 BASEPROJECT="$currentBaseProject"
@@ -273,10 +271,135 @@ function restore_run() {
                 LOCALPROJECTGROUP="$currentProjectGroup"
                 BUILDDIR="$currentProjectBuild"
                 LOCALPROJECT="$currentProject"
-                LOCALPROPERTIES=("${currentLocalProperties[@]}")
+                LOCALPROPERTIES=()
+                copyAssociativeArray currentLocalProperties LOCALPROPERTIES
+            fi
+            
+            # Clean type properties
+            depType="undefined"
+
+            # Clean
+            cleanDependencyEnvironment "$path"
+        fi
+    done
+
+    # Deep restore
+    for path in "$LOCALPROJECT/dependencies/"*.dep; do
+        # Load dependency project if polyfile is present
+        if [ -f "$path" ]; then
+            # Load dependency sheet
+            depFile="$(basename "$path")"
+            depFilePretty="$dirFriendly/dependencies/$(basename "$path")"
+
+            # Setup
+            setupDependencyEnvironment "$path"
+
+            # Load file
+            source "$path" || loadDependencyError "$depFilePretty"
+
+            # Load overload
+            local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
+            if [ -f "$localOverload" ]; then 
+                source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
+            fi
+
+            # Check required fields
+            if [ "$type" == "undefined" ]; then
+                1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'type' field!"
+                return 1
+            fi
+            if [ "$id" == "undefined" ]; then
+                1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'id' field!"
+                return 1
+            fi
+            if [ "$output" == "undefined" ]; then
+                1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'output' field!"
+                return 1
+            fi
+            depOutput="$output"
+
+            # Clean
+            local dependId="$id"
+            cleanDependencyEnvironment "$path"
+
+            # Check result
+            local path="$LOCALPROJECT/$depOutput"
+            if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]) && [ -d "$path/dependencies" ]; then
+                echo ">> Restoring dependencies for: $dependId"
+
+                # Get set ID
+                local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+                local projectDirPretty="${projectsDirFriendly["$LOCALPROJECTID"]}"
+
+                # Get project environment
+                local currentBaseProject="$BASEPROJECT"
+                local currentBaseBuild="$BASEBUILDDIR"
+                local currentBaseId="$BASEPROJECTID"
+                local currentBaseVersion="$BASEPROJECTVERSION"
+                local currentBaseGroup="$BASEPROJECTGROUP"
+                local currentProjectId="$LOCALPROJECTID"
+                local currentProjectBuild="$BUILDDIR"
+                local currentProject="$LOCALPROJECT"
+                local currentProjectVersion="$LOCALPROJECTVERSION"
+                local currentProjectGroup="$LOCALPROJECTVERSION"
+                declare -A currentLocalProperties=()
+                copyAssociativeArray LOCALPROPERTIES currentLocalProperties
+
+                # Prepare paths
+                local pathName="$(basename "$path")"
+                local currentId="$LOCALPROJECTID"
+                local pathpretty="$projectDirPretty/dependencies/$pathName"
+                local fullpath="$(readlink -f "$path")"
+
+                # Get current base
+                local baseProject="$BASEPROJECT"
+                local baseProjectId="$BASEPROJECTID"
+                local baseProjectVersion="$BASEPROJECTVERSION"
+                local baseProjectGroup="$BASEPROJECTGROUP"
+                local baseBuild="$BASEBUILDDIR"
+
+                # Unset, dependencies each are treated as a base
+                BASEPROJECT=undefined
+                BASEPROJECTID=undefined
+                BASEBUILDDIR=undefined
+                BASEPROJECTVERSION=undefined
+                BASEPROJECTGROUP=undefined
+                
+                # Try loading it
+                name="dependency $pathName"
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" true false false ">>> " ; then
+                    1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
+                    return 1
+                fi
+                BASEPROJECT="$baseProject"
+                BASEPROJECTID="$baseProjectId"
+                BASEBUILDDIR="$baseBuild"
+                BASEPROJECTVERSION="$baseProjectVersion"
+                BASEPROJECTGROUP="$baseProjectGroup"
+                local loadedId="$id"
+
+                # Loaded successfully
+                # Add project to list
+                if ! arrayContains "$loadedId" "dependencies_$setId"; then
+                    eval "dependencies_$setId"'+=("'"$loadedId"'")'
+                fi
+
+                # Restore environment
+                BASEPROJECT="$currentBaseProject"
+                BASEBUILDDIR="$currentBaseBuild"
+                BASEPROJECTID="$currentBaseId"
+                BASEPROJECTVERSION="$currentBaseVersion"
+                BASEPROJECTGROUP="$currentBaseGroup"
+                LOCALPROJECTID="$currentProjectId"
+                LOCALPROJECTVERSION="$currentProjectVersion"
+                LOCALPROJECTGROUP="$currentProjectGroup"
+                BUILDDIR="$currentProjectBuild"
+                LOCALPROJECT="$currentProject"
+                LOCALPROPERTIES=()
+                copyAssociativeArray currentLocalProperties LOCALPROPERTIES
 
                 # Restore dependencies
-                runLocalToProject "$loadedId" callSingleTaskForcedClearStack "restore"
+                runLocalToProject "$loadedId" callSingleTaskForcedClearStack "restore" --sparse
             fi
             
             # Clean

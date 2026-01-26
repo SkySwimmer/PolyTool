@@ -18,6 +18,7 @@ ROOTBUILDDIR=undefined
 BASEBUILDDIR=undefined
 BUILDDIR=undefined
 
+# Projects
 declare -A projects=()
 declare -A projectsNames=()
 declare -A projectsGroups=()
@@ -28,15 +29,17 @@ declare -A projectsByDir=()
 declare -A projectsByGroupAndId=()
 declare -A projectsSetIds=()
 declare -A projectsBaseProjectIds=()
-
 declare setIds=()
 
-declare requiredCommands=()
+# Properties
+declare -A GLOBALPROPERTIES=() # Across projects
+declare -A LOCALPROPERTIES=() # Specific to projects
+declare -A PROPERTIES=() # Specific to tasks (inherits LOCALPROPERTIES)
+declare -A PARAMETERS=() # Specific to tasks, parameters are arguments passed to tasks
 
-declare PROPERTIES=()
-declare GLOBALPROPERTIES=()
-declare LOCALPROPERTIES=()
-
+# Functionality
 declare -A TASKS_DEPENDENCY_LIST_IDS=()
 declare -A TASKMEMORYREFSCANNER_KEYS=()
 declare -A TASKMEMORYREFSCANNER_FILES=()
+
+declare requiredCommands=()

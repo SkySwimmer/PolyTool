@@ -531,8 +531,12 @@ function execTasksRelativePrepare() {
             fi
 
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -552,7 +556,10 @@ function execTasksRelativePrepare() {
                 applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
@@ -561,7 +568,10 @@ function execTasksRelativePrepare() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
@@ -572,14 +582,20 @@ function execTasksRelativePrepare() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
@@ -625,8 +641,12 @@ function execTasksRelativeRun() {
             fi
 
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -643,13 +663,19 @@ function execTasksRelativeRun() {
             runFunctionSafe "${task}_run" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
-                PROPERTIES=("${taskEnvLast[@]}")
+                PROPERTIES=()
+                copyAssociativeArray taskEnvLast PROPERTIES
+                PARAMETERS=()
+                copyAssociativeArray parametersEnvLast PARAMETERS
                 cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 return $exit
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
@@ -688,8 +714,12 @@ function execTasksRelativeFinish() {
             CALLINGTASKSLIST+=("$tasksDir/$task.task")
         
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -714,14 +744,20 @@ function execTasksRelativeFinish() {
                 runFunctionSafe "${task}_finish" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
