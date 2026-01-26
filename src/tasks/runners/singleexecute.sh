@@ -9,6 +9,15 @@ function singleExecuteRunner() {
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
 
+    # Check if the task is to run local to another project
+    if [[ "$task" == *:* ]]; then
+        # It is
+        local projectId="${task%:*}"
+        local task="${task#*:}"
+        runLocalToProject "$projectId" singleExecuteRunner "$onlyWhenNeeded" "$task" "${runnerArgs[@]}"
+        return $?
+    fi
+
     # Get project properties
     local localProjectDir="$LOCALPROJECT"
     local baseProjectDir="$BASEPROJECT"

@@ -98,6 +98,13 @@ function git_deptype_restore() {
                 return 1
             fi
             if [ "$tag" == "undefined" ] && [ "$wasDetached" == false ]; then
+                # Fetch
+                echo ">>> Fetching upstream..."
+                if ! git fetch; then
+                    gitRestoreFail
+                    return 1
+                fi
+
                 # Get upstream commit
                 upstreamcommit="$(git rev-parse "$remote/$targetbranch")"
                 if [ "$?" != 0 ]; then
@@ -115,7 +122,7 @@ function git_deptype_restore() {
         # Return to old pwd
         cd "$pwd"
     else
-        # Doesnt exsit yet
+        # Doesnt exist yet
         updateNeeded=true
     fi
     
@@ -128,13 +135,6 @@ function git_deptype_restore() {
 
             # Change CWD
             cd "$outputPath"
-
-            # Fetch
-            echo ">>> Fetching upstream..."
-            if ! git fetch; then
-                gitRestoreFail
-                return 1
-            fi
 
             # Switch branch if needed
             if [ "$targetbranch" != "$branchcurrent" ]; then
