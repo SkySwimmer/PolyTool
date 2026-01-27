@@ -42,5 +42,4 @@ declare -A TASKS_DEPENDENCY_LIST_IDS=()
 declare -A TASKMEMORYREFSCANNER_KEYS=()
 declare -A TASKMEMORYREFSCANNER_FILES=()
 declare ANTIRECURSIONLIST=()
-
 declare requiredCommands=()
