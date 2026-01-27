@@ -589,7 +589,7 @@ function findAllTasksProject() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done

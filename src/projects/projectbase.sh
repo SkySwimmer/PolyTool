@@ -89,17 +89,32 @@ function loadProject() {
     LOCALPROJECTVERSION="$version"
     LOCALPROJECTGROUP="$group"
 
+    # Prevent recursing
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
+    if arrayContains "$projectRealDir" ANTIRECURSIONLIST; then
+        # Call callback
+        if [ "$callback" != "" ]; then
+            "$callback" "$id" "$projectName" "$projectDir" "$projectRealDir"
+        fi
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+        return 0
+    fi
+    ANTIRECURSIONLIST+=("$projectRealDir")
+
     # Check if loaded
     # This is done post-sourcing so the project properties are still as expected
     if [ "${projectsByDir["$projectRealDir"]}" != "" ] && [ "$forceReload" != "true" ]; then
         # Same project loaded
-
+        
         # Load dependencies if needed
         if [ "$loadDependencies" == "true" ]; then
             runLocalToProject "$id" loadProjectDependencies "$loadDependencies" "$forceReloadDependencies" "$forceReloadDependencies" "$logPrefix"
         fi
 
         # Call callback
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         if [ "$callback" != "" ]; then
             "$callback" "$id" "$projectName" "$projectDir" "$projectRealDir"
         fi
@@ -116,6 +131,7 @@ function loadProject() {
         fi
 
         # Call callback
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         if [ "$callback" != "" ]; then
             "$callback" "$id" "$projectName" "$projectDir" "$projectRealDir"
         fi
@@ -125,14 +141,17 @@ function loadProject() {
     # Handle settings
     echo "${logPrefix}Loading project $name ($id) from $projectDir..."
     if [ "$id" == "undefined" ]; then
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         1>&2 echo "Error: polyfile of project $projectName ($projectDir) did not assign an 'id' field!"
         return 1
     fi
     if [ "$version" == "undefined" ]; then
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         1>&2 echo "Error: polyfile of project $projectName ($projectDir) did not assign a 'version' field!"
         return 1
     fi
     if [ "$group" == "undefined" ]; then
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         1>&2 echo "Error: polyfile of project $projectName ($projectDir) did not assign a 'group' field!"
         return 1
     fi
@@ -141,11 +160,13 @@ function loadProject() {
     if [ "${projects["$id"]}" != "" ]; then
         if [ "${projectsByGroupAndId["$group/$id"]}" == "" ]; then
             # Found project with same ID but at different location
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             1>&2 echo "Error: double project ID $id with different groups, loading project: $projectName ($projectDir), previously loaded project: ${projectsNames["$id"]} (${projectsDirFriendly["$id"]})"
             return 1
         fi
         if [ "${projectsByDir["$projectRealDir"]}" == "" ] && [ "$forceReload" != "true" ]; then
             # Found project with same ID but at different location
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             1>&2 echo "Error: double project ID $id with different sources, loading project: $projectName ($projectDir), previously loaded project: ${projectsNames["$id"]} (${projectsDirFriendly["$id"]})"
             return 1
         fi
@@ -215,14 +236,17 @@ function loadProject() {
 
             # Check required fields
             if [ "$type" == "undefined" ]; then
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'type' field!"
                 return 1
             fi
             if [ "$id" == "undefined" ]; then
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'id' field!"
                 return 1
             fi
             if [ "$output" == "undefined" ]; then
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'output' field!"
                 return 1
             fi
@@ -257,6 +281,7 @@ function loadProject() {
                 # Try loading it
                 name="dependency $pathName"
                 if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" "$loadDependencies" "$forceReloadDependencies" "$forceReloadDependencies" "$logPrefix" ; then
+                    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                     1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): dependency \"$pathName\" could not be loaded"
                     return 1
                 fi
@@ -319,6 +344,7 @@ function loadProject() {
             # Try loading it
             name="subproject $path"
             if ! loadProject "$pathpretty" "$fullpath" "subproject $path" "" "$loadDependencies" "$forceReload" "$forceReloadDependencies" "$logPrefix" ; then
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): sub-project \"$path\" could not be loaded"
                 return 1
             fi
@@ -328,6 +354,7 @@ function loadProject() {
             eval "subprojects_$setId"'+=("'"$id"'")'
         else
             # Cant find the project
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): sub-project path \"$path\" could not be found"
             return 1
         fi
@@ -372,6 +399,7 @@ function loadProject() {
     fi
 
     # Success
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
     return 0
 }
 

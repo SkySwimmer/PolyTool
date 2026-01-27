@@ -1,6 +1,7 @@
 #!/bin/bash
 
 function restore_define() {
+    runRelativeToCallerProject=true
     allowMultiExecute=false
     runtimeTaskShared=true
 }
@@ -384,6 +385,19 @@ function restore_run() {
                         eval "dependencies_$setId"'+=("'"$loadedId"'")'
                     fi
 
+                    # Restore dependencies
+                    if ! arrayContains "$fullpath" ANTIRECURSIONLIST; then
+                        local recLAST="$RESTORERECURSING"
+                        RESTORERECURSING=true
+                        local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+                        ANTIRECURSIONLIST=()
+                        ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
+                        ANTIRECURSIONLIST+=("$fullpath")
+                        callSingleTaskForcedClearStack "restore"
+                        RESTORERECURSING="$recLAST"
+                        ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
+                    fi
+
                     # Restore environment
                     BASEPROJECT="$currentBaseProject"
                     BASEBUILDDIR="$currentBaseBuild"
@@ -397,19 +411,6 @@ function restore_run() {
                     LOCALPROJECT="$currentProject"
                     LOCALPROPERTIES=()
                     copyAssociativeArray currentLocalProperties LOCALPROPERTIES
-
-                    # Restore dependencies
-                    if ! arrayContains "$depTypesDir/$depTypeName.deptype" CALLINGTASKSLIST; then
-                        local recLAST="$RESTORERECURSING"
-                        RESTORERECURSING=true
-                        local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-                        CALLINGTASKSLIST=()
-                        CALLINGTASKSLIST+=("${callTaskListLast[@]}")
-                        CALLINGTASKSLIST+=("$fullpath")
-                        runLocalToProject "$loadedId" callSingleTaskForcedClearStack "restore"
-                        RESTORERECURSING="$recLAST"
-                        CALLINGTASKSLIST=("${callTaskListLast[@]}")    
-                    fi
                 fi
                 
                 # Clean
@@ -495,9 +496,9 @@ function findAndSourceDepTypeFileFromProject() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -507,14 +508,14 @@ function findAndSourceDepTypeFileFromProject() {
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         return $exit
     fi
     if [ "$depTypeFound" == "true" ]; then
         # Success
         
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         return $exit
     fi
 
@@ -529,14 +530,14 @@ function findAndSourceDepTypeFileFromProject() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
         if [ "$depTypeFound" == "true" ]; then
             # Success
             
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
@@ -552,14 +553,14 @@ function findAndSourceDepTypeFileFromProject() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
         if [ "$depTypeFound" == "true" ]; then
             # Success
             
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
@@ -570,34 +571,34 @@ function findAndSourceDepTypeFileFromProject() {
         # Check state
 
         # Box again
-        local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-        CALLINGTASKSLIST=()
-        CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+        local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+        ANTIRECURSIONLIST=()
+        ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
         # Find task
         runLocalToProject "$projectId" execFindAndSourceDepTypeFile "$depTypeName" "$runtimeDepTypeDir" false "" ""
         local exit=$?
 
         # Revert
-        CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
         # Handle exit
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
         if [ "$depTypeFound" == "true" ]; then
             # Success
             
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     fi
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function execFindAndSourceDepTypeFile() {
@@ -616,10 +617,10 @@ function execFindAndSourceDepTypeFile() {
             depTypeFound=true
 
             # Check recursion
-            if arrayContains "$depTypesDir/$depTypeName.deptype" CALLINGTASKSLIST; then
+            if arrayContains "$depTypesDir/$depTypeName.deptype" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$depTypesDir/$depTypeName.deptype")
+            ANTIRECURSIONLIST+=("$depTypesDir/$depTypeName.deptype")
             
             local depTypeFile="$depTypesDir/$depTypeName.deptype"
             local localDepTypeFile="$LOCALPROJECT/polylocal/deptypes/$depTypeName.deptype"

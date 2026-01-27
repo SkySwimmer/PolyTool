@@ -17,8 +17,8 @@ function callTaskClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
     local taskFoundLast="$taskFound"
@@ -27,7 +27,7 @@ function callTaskClearStack() {
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
@@ -62,8 +62,8 @@ function callTaskForcedClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
     local taskFoundLast="$taskFound"
@@ -72,7 +72,7 @@ function callTaskForcedClearStack() {
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
@@ -107,8 +107,8 @@ function callSingleTaskClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
     local taskFoundLast="$taskFound"
@@ -117,7 +117,7 @@ function callSingleTaskClearStack() {
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
@@ -152,8 +152,8 @@ function callSingleTaskForcedClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
     local taskFoundLast="$taskFound"
@@ -162,7 +162,7 @@ function callSingleTaskForcedClearStack() {
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then

@@ -97,9 +97,9 @@ function taskRunnerProjectRelativePrepare() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -132,7 +132,7 @@ function taskRunnerProjectRelativePrepare() {
     # Handle exit
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         return $exit
     fi
 
@@ -145,7 +145,7 @@ function taskRunnerProjectRelativePrepare() {
             # Check if called
             if (arrayContains "RUNTIME@$projectId@$task" TASKSBEINGRUN_PREPARE && ! arrayContains "RUNTIME@$projectId@$task" TASKS_PERMITTING_MULTIRUN) || (arrayContains "RUNTIME@$task" TASKSBEINGRUN_PREPARE && ! arrayContains "RUNTIME@$task" TASKS_PERMITTING_MULTIRUN); then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 
                 # Already run
                 if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -168,16 +168,16 @@ function taskRunnerProjectRelativePrepare() {
             fi
             
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
             taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksRelativePrepare "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Add to task list
             if [ "$taskFound" == "true" ]; then
@@ -193,7 +193,7 @@ function taskRunnerProjectRelativePrepare() {
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
@@ -210,13 +210,13 @@ function taskRunnerProjectRelativePrepare() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function taskRunnerProjectRelativeRun() {
@@ -255,9 +255,9 @@ function taskRunnerProjectRelativeRun() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -273,7 +273,7 @@ function taskRunnerProjectRelativeRun() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
@@ -283,7 +283,7 @@ function taskRunnerProjectRelativeRun() {
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         return $exit
     fi
 
@@ -296,7 +296,7 @@ function taskRunnerProjectRelativeRun() {
             # Check if called
             if (arrayContains "RUNTIME@$projectId@$task" TASKSBEINGRUN_RUN && ! arrayContains "RUNTIME@$projectId@$task" TASKS_PERMITTING_MULTIRUN) || (arrayContains "RUNTIME@$task" TASKSBEINGRUN_RUN && ! arrayContains "RUNTIME@$task" TASKS_PERMITTING_MULTIRUN); then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 
                 # Already run
                 if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -319,21 +319,21 @@ function taskRunnerProjectRelativeRun() {
             fi
 
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
             taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksRelativeRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
@@ -350,13 +350,13 @@ function taskRunnerProjectRelativeRun() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function taskRunnerProjectRelativeFinish() {
@@ -395,9 +395,9 @@ function taskRunnerProjectRelativeFinish() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -413,7 +413,7 @@ function taskRunnerProjectRelativeFinish() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             
             return $exit
         fi
@@ -424,7 +424,7 @@ function taskRunnerProjectRelativeFinish() {
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         
         return $exit
     fi
@@ -438,7 +438,7 @@ function taskRunnerProjectRelativeFinish() {
             # Check if called
             if (arrayContains "RUNTIME@$projectId@$task" TASKSBEINGRUN_FINISH && ! arrayContains "RUNTIME@$projectId@$task" TASKS_PERMITTING_MULTIRUN) || (arrayContains "RUNTIME@$task" TASKSBEINGRUN_FINISH && ! arrayContains "RUNTIME@$task" TASKS_PERMITTING_MULTIRUN); then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 
                 # Already run
                 if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -461,21 +461,21 @@ function taskRunnerProjectRelativeFinish() {
             fi
 
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
             taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksRelativeFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
@@ -492,14 +492,14 @@ function taskRunnerProjectRelativeFinish() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             
             return $exit
         fi
     done
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 
@@ -523,10 +523,10 @@ function execTasksRelativePrepare() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Found task
             # Run pre-tasks
@@ -637,10 +637,10 @@ function execTasksRelativeRun() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Show log
             if [ "$isProject" == true ]; then
@@ -717,10 +717,10 @@ function execTasksRelativeFinish() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Get last env
             declare -A taskEnvLast=()

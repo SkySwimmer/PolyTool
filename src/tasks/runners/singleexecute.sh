@@ -113,9 +113,9 @@ function taskRunnerProjectSingle() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Check task
     if [ "$task" != "restore" ]; then 
@@ -132,12 +132,12 @@ function taskRunnerProjectSingle() {
         # Handle exit
         if [ "$exit" != 0 ] && [ "$taskFound" == "true" ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
         if [ "$taskFound" == "true" ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
 
@@ -155,12 +155,12 @@ function taskRunnerProjectSingle() {
             local exit=$?
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
             if [ "$taskFound" == "true" ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         done
@@ -176,12 +176,12 @@ function taskRunnerProjectSingle() {
             local exit=$?
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
             if [ "$taskFound" == "true" ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         done
@@ -232,16 +232,16 @@ function taskRunnerProjectSingle() {
             fi
             
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
             taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksSingle "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Add to task list
             if [ "$taskFound" == "true" ]; then
@@ -257,19 +257,19 @@ function taskRunnerProjectSingle() {
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
             if [ "$taskFound" == "true" ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
     fi
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function execTasksSingle() {
@@ -292,10 +292,10 @@ function execTasksSingle() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Found task
             # Run pre-tasks
