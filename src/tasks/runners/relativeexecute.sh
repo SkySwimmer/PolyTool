@@ -9,6 +9,15 @@ function relativeExecuteRunner() {
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
 
+    # Check if the task is to run local to another project
+    if [[ "$task" == *:* ]]; then
+        # It is
+        local projectId="${task%:*}"
+        local task="${task#*:}"
+        runLocalToProject "$projectId" relativeExecuteRunner "$onlyWhenNeeded" "$task" "${runnerArgs[@]}"
+        return $?
+    fi
+
     # Get project properties
     local localProjectDir="$LOCALPROJECT"
     local baseProjectDir="$BASEPROJECT"
@@ -68,6 +77,9 @@ function taskRunnerProjectRelativePrepare() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
@@ -85,9 +97,9 @@ function taskRunnerProjectRelativePrepare() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -99,7 +111,7 @@ function taskRunnerProjectRelativePrepare() {
         local depDir="${projects["$depId"]}"
 
         # Run in dependency
-        runLocalToProject "$depId" taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+        taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -107,7 +119,7 @@ function taskRunnerProjectRelativePrepare() {
     done
 
     # Find task
-    runLocalToProject "$projectId" execTasksRelativePrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativePrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
 
     # Add to task list
@@ -120,7 +132,7 @@ function taskRunnerProjectRelativePrepare() {
     # Handle exit
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         return $exit
     fi
 
@@ -133,7 +145,7 @@ function taskRunnerProjectRelativePrepare() {
             # Check if called
             if (arrayContains "RUNTIME@$projectId@$task" TASKSBEINGRUN_PREPARE && ! arrayContains "RUNTIME@$projectId@$task" TASKS_PERMITTING_MULTIRUN) || (arrayContains "RUNTIME@$task" TASKSBEINGRUN_PREPARE && ! arrayContains "RUNTIME@$task" TASKS_PERMITTING_MULTIRUN); then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 
                 # Already run
                 if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -156,16 +168,16 @@ function taskRunnerProjectRelativePrepare() {
             fi
             
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksRelativePrepare "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksRelativePrepare "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Add to task list
             if [ "$taskFound" == "true" ]; then
@@ -181,7 +193,7 @@ function taskRunnerProjectRelativePrepare() {
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
@@ -194,17 +206,17 @@ function taskRunnerProjectRelativePrepare() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+        taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function taskRunnerProjectRelativeRun() {
@@ -226,6 +238,9 @@ function taskRunnerProjectRelativeRun() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
@@ -240,9 +255,9 @@ function taskRunnerProjectRelativeRun() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -254,21 +269,21 @@ function taskRunnerProjectRelativeRun() {
         local depDir="${projects["$depId"]}"
 
         # Run in dependency
-        runLocalToProject "$depId" taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+        taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
 
     # Find task
-    runLocalToProject "$projectId" execTasksRelativeRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativeRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         return $exit
     fi
 
@@ -281,7 +296,7 @@ function taskRunnerProjectRelativeRun() {
             # Check if called
             if (arrayContains "RUNTIME@$projectId@$task" TASKSBEINGRUN_RUN && ! arrayContains "RUNTIME@$projectId@$task" TASKS_PERMITTING_MULTIRUN) || (arrayContains "RUNTIME@$task" TASKSBEINGRUN_RUN && ! arrayContains "RUNTIME@$task" TASKS_PERMITTING_MULTIRUN); then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 
                 # Already run
                 if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -304,21 +319,21 @@ function taskRunnerProjectRelativeRun() {
             fi
 
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksRelativeRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksRelativeRun "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
@@ -331,17 +346,17 @@ function taskRunnerProjectRelativeRun() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+        taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function taskRunnerProjectRelativeFinish() {
@@ -363,6 +378,9 @@ function taskRunnerProjectRelativeFinish() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
@@ -377,9 +395,9 @@ function taskRunnerProjectRelativeFinish() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
@@ -391,22 +409,22 @@ function taskRunnerProjectRelativeFinish() {
         local depDir="${projects["$depId"]}"
 
         # Run in dependency
-        runLocalToProject "$depId" taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+        taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             
             return $exit
         fi
     done
 
     # Find task
-    runLocalToProject "$projectId" execTasksRelativeFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativeFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
-        CALLINGTASKSLIST=("${callTaskListLast[@]}")
+        ANTIRECURSIONLIST=("${callTaskListLast[@]}")
         
         return $exit
     fi
@@ -420,7 +438,7 @@ function taskRunnerProjectRelativeFinish() {
             # Check if called
             if (arrayContains "RUNTIME@$projectId@$task" TASKSBEINGRUN_FINISH && ! arrayContains "RUNTIME@$projectId@$task" TASKS_PERMITTING_MULTIRUN) || (arrayContains "RUNTIME@$task" TASKSBEINGRUN_FINISH && ! arrayContains "RUNTIME@$task" TASKS_PERMITTING_MULTIRUN); then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 
                 # Already run
                 if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -443,21 +461,21 @@ function taskRunnerProjectRelativeFinish() {
             fi
 
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksRelativeFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksRelativeFinish "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
@@ -470,18 +488,18 @@ function taskRunnerProjectRelativeFinish() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+        taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             
             return $exit
         fi
     done
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 
@@ -505,10 +523,10 @@ function execTasksRelativePrepare() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Found task
             # Run pre-tasks
@@ -522,8 +540,12 @@ function execTasksRelativePrepare() {
             fi
 
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -543,7 +565,10 @@ function execTasksRelativePrepare() {
                 applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
@@ -552,7 +577,10 @@ function execTasksRelativePrepare() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
@@ -563,14 +591,20 @@ function execTasksRelativePrepare() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
@@ -603,10 +637,10 @@ function execTasksRelativeRun() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Show log
             if [ "$isProject" == true ]; then
@@ -616,8 +650,12 @@ function execTasksRelativeRun() {
             fi
 
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -634,13 +672,19 @@ function execTasksRelativeRun() {
             runFunctionSafe "${task}_run" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
-                PROPERTIES=("${taskEnvLast[@]}")
+                PROPERTIES=()
+                copyAssociativeArray taskEnvLast PROPERTIES
+                PARAMETERS=()
+                copyAssociativeArray parametersEnvLast PARAMETERS
                 cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 return $exit
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
@@ -673,14 +717,18 @@ function execTasksRelativeFinish() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -705,14 +753,20 @@ function execTasksRelativeFinish() {
                 runFunctionSafe "${task}_finish" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
