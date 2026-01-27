@@ -399,10 +399,17 @@ function restore_run() {
                     copyAssociativeArray currentLocalProperties LOCALPROPERTIES
 
                     # Restore dependencies
-                    local recLAST="$RESTORERECURSING"
-                    RESTORERECURSING=true
-                    runLocalToProject "$loadedId" callSingleTaskForcedClearStack "restore"
-                    RESTORERECURSING="$recLAST"
+                    if ! arrayContains "$depTypesDir/$depTypeName.deptype" CALLINGTASKSLIST; then
+                        local recLAST="$RESTORERECURSING"
+                        RESTORERECURSING=true
+                        local callTaskListLast=("${CALLINGTASKSLIST[@]}")
+                        CALLINGTASKSLIST=()
+                        CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+                        CALLINGTASKSLIST+=("$fullpath")
+                        runLocalToProject "$loadedId" callSingleTaskForcedClearStack "restore"
+                        RESTORERECURSING="$recLAST"
+                        CALLINGTASKSLIST=("${callTaskListLast[@]}")    
+                    fi
                 fi
                 
                 # Clean
