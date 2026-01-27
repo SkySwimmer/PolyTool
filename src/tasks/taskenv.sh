@@ -17,26 +17,29 @@ function callTaskClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -59,26 +62,29 @@ function callTaskForcedClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunner "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -101,26 +107,29 @@ function callSingleTaskClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -143,26 +152,29 @@ function callSingleTaskForcedClearStack() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Box recursion list, clear it
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunner "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 
     # Handle
     if [ "$result" != 0 ]; then
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -185,6 +197,7 @@ function callTask() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunnerIfNeeded "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
@@ -194,10 +207,12 @@ function callTask() {
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -220,6 +235,7 @@ function callTaskForced() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunner "$task" relativeExecuteRunner "${taskParams[@]}"
     local result=$?
@@ -229,10 +245,12 @@ function callTaskForced() {
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -255,6 +273,7 @@ function callSingleTask() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunnerIfNeeded "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
@@ -264,10 +283,12 @@ function callSingleTask() {
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -290,6 +311,7 @@ function callSingleTaskForced() {
     arrayCopyOfRange args taskParams 1 "${#args[@]}"
 
     # Run task if needed
+    local taskFoundLast="$taskFound"
     taskFound=false
     runTaskWithRunner "$task" singleExecuteRunner "${taskParams[@]}"
     local result=$?
@@ -299,10 +321,12 @@ function callSingleTaskForced() {
         if [ "$taskFound" != true ]; then
             1>&2 echo "Error: task not recognized: $task"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return 1
         else
             1>&2 echo "Error: task exited with non-zero exit code"
             printStackTrace 1
+            taskFound="$taskFoundLast"
             return $result
         fi
     fi
@@ -321,7 +345,53 @@ function setupTaskEnvironment() {
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
 
     # Apply local properties to properties
-    PROPERTIES+=("${LOCALPROPERTIES[@]}")
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+
+    # Process parameters
+    local skip=0
+    local i=0
+    local len="${#runnerArgs[@]}"
+    for arg in "${runnerArgs[@]}"; do
+        # Check argument skip
+        if ((skip > 0)); then
+            skip=$((skip-1))
+            continue
+        fi
+
+        # Add argument if needed
+        if [ "$arg" == "--" ]; then 
+            # End, rest is plain
+            break
+        elif [[ "$arg" == "--"* ]]; then 
+            # Substring it
+            local key="${arg#*--}"
+            local valuePresent=false
+            local value="true"
+
+            # Check syntax
+            if [[ "$key" == *=* ]]; then
+                value="${key#*=}"
+                key="${key%=*}"
+                valuePresent=true
+            fi
+
+            # Check value
+            local i2=$((i+1))
+            if [ "$valuePresent" != true ] && ((i2 < len)) && [[ "${runnerArgs[$i2]}" != "--"* ]]; then
+                i=$((i+1))
+                skip=$((skip+1))
+                value="${runnerArgs[$i]}"
+                valuePresent=true
+            fi
+
+            # Check key
+            if [ "$key" != "" ]; then
+                PARAMETERS+=(["$key"]="$value")
+            fi
+        fi
+
+        i=$((i+1))
+    done
 
     # Read arguments
     local skip=0
@@ -468,6 +538,7 @@ function setupTaskDefineEnvironment() {
     # Defaults
     allowMultiExecute=false
     runtimeTaskShared=false
+    runRelativeToCallerProject=false
 }
 
 function applyTaskDefineEnvironment() {
@@ -509,6 +580,9 @@ function applyTaskDefineEnvironment() {
             TASKS_PERMITTING_MULTIRUN+=("RUNTIME@$LOCALPROJECTID@$task")
         fi
     fi
+    if [ "$runRelativeToCallerProject" == "true" ]; then
+        TASKS_RELATIVE_TO_CALLER+=("$taskKey")
+    fi
 }
 
 function cleanTaskDefineEnvironment() {
@@ -526,4 +600,5 @@ function cleanTaskDefineEnvironment() {
     # Reset
     unset allowMultiExecute
     unset runtimeTaskShared
+    unset runRelativeToCallerProject
 }

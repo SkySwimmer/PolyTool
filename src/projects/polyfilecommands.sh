@@ -10,6 +10,16 @@ function addSubProject() {
     subProjectPaths+=("$path")
 }
 
+function addDependencyProject() {
+    path="$1"
+    if [ "$path" == "" ]; then
+        1>&2 echo "Error: missing argument 'path' in addDependencyProject statement in polyfile"
+        printStackTrace 1
+        exit 1
+    fi
+    dependencyProjectPaths+=("$path")
+}
+
 function setGlobal() {
     key="$1"
     value="$2" 

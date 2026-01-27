@@ -9,6 +9,15 @@ function singleExecuteRunner() {
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
 
+    # Check if the task is to run local to another project
+    if [[ "$task" == *:* ]]; then
+        # It is
+        local projectId="${task%:*}"
+        local task="${task#*:}"
+        runLocalToProject "$projectId" singleExecuteRunner "$onlyWhenNeeded" "$task" "${runnerArgs[@]}"
+        return $?
+    fi
+
     # Get project properties
     local localProjectDir="$LOCALPROJECT"
     local baseProjectDir="$BASEPROJECT"
@@ -76,6 +85,9 @@ function taskRunnerProjectSingle() {
             if arrayContains "$projectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
+            if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
+                taskFound=true
+            fi
             return 0
         fi
     fi
@@ -101,14 +113,14 @@ function taskRunnerProjectSingle() {
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
     # That way, cyclic calls are ignored without breaking other task files calling callTask for the same task
-    local callTaskListLast=("${CALLINGTASKSLIST[@]}")
-    CALLINGTASKSLIST=()
-    CALLINGTASKSLIST+=("${callTaskListLast[@]}")
+    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+    ANTIRECURSIONLIST=()
+    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
 
     # Check task
     if [ "$task" != "restore" ]; then 
         # Find task
-        runLocalToProject "$projectId" execTasksSingle "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+        taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksSingle "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
         local exit=$?
 
         # Add to task list
@@ -120,12 +132,12 @@ function taskRunnerProjectSingle() {
         # Handle exit
         if [ "$exit" != 0 ] && [ "$taskFound" == "true" ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
         if [ "$taskFound" == "true" ]; then
             # Revert list
-            CALLINGTASKSLIST=("${callTaskListLast[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
 
@@ -139,16 +151,16 @@ function taskRunnerProjectSingle() {
             local subProjectDir="${projects["$subProjectId"]}"
 
             # Run in subproject
-            runLocalToProject "$subProjectId" taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+            taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
             if [ "$taskFound" == "true" ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         done
@@ -160,16 +172,16 @@ function taskRunnerProjectSingle() {
             local depDir="${projects["$depId"]}"
 
             # Run in dependency
-            runLocalToProject "$depId" taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            taskRunnerProjectSingle "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
             if [ "$taskFound" == "true" ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         done
@@ -220,16 +232,16 @@ function taskRunnerProjectSingle() {
             fi
             
             # Box again
-            local callTaskListLast2=("${CALLINGTASKSLIST[@]}")
-            CALLINGTASKSLIST=()
-            CALLINGTASKSLIST+=("${callTaskListLast2[@]}")
+            local callTaskListLast2=("${ANTIRECURSIONLIST[@]}")
+            ANTIRECURSIONLIST=()
+            ANTIRECURSIONLIST+=("${callTaskListLast2[@]}")
 
             # Find task
-            runLocalToProject "$projectId" execTasksSingle "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
+            taskSensitiveRunLocalToProject false "$projectId" "$task" "$projectId" execTasksSingle "$task" "$runtimeTaskDir" false "" "" "${runnerArgs[@]}"
             local exit=$?
 
             # Revert
-            CALLINGTASKSLIST=("${callTaskListLast2[@]}")
+            ANTIRECURSIONLIST=("${callTaskListLast2[@]}")
 
             # Add to task list
             if [ "$taskFound" == "true" ]; then
@@ -245,19 +257,19 @@ function taskRunnerProjectSingle() {
             # Handle exit
             if [ "$exit" != 0 ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
             if [ "$taskFound" == "true" ]; then
                 # Revert list
-                CALLINGTASKSLIST=("${callTaskListLast[@]}")
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
                 return $exit
             fi
         fi
     fi
 
     # Revert list
-    CALLINGTASKSLIST=("${callTaskListLast[@]}")
+    ANTIRECURSIONLIST=("${callTaskListLast[@]}")
 }
 
 function execTasksSingle() {
@@ -280,10 +292,10 @@ function execTasksSingle() {
             taskFound=true
 
             # Check recursion
-            if arrayContains "$tasksDir/$task.task" CALLINGTASKSLIST; then
+            if arrayContains "$tasksDir/$task.task" ANTIRECURSIONLIST; then
                 return 0
             fi
-            CALLINGTASKSLIST+=("$tasksDir/$task.task")
+            ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Found task
             # Run pre-tasks
@@ -291,14 +303,18 @@ function execTasksSingle() {
             
             # Show log
             if [ "$isProject" == true ]; then
-                echo "> $projectId:$task in $LOCALPROJECTID : PREPARE"
+                echo "> $projectId:$task : $LOCALPROJECTID : PREPARE"
             else
-                echo "> $task in $LOCALPROJECTID : PREPARE"
+                echo "> $task : $LOCALPROJECTID : PREPARE"
             fi
 
             # Get last env
-            local taskEnvLast=("${PROPERTIES[@]}")
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
+            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -319,7 +335,10 @@ function execTasksSingle() {
                 applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
@@ -328,7 +347,10 @@ function execTasksSingle() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
@@ -336,16 +358,19 @@ function execTasksSingle() {
 
             # Show log
             if [ "$isProject" == true ]; then
-                echo "> $projectId:$task in $LOCALPROJECTID : RUN"
+                echo "> $projectId:$task : $LOCALPROJECTID : RUN"
             else
-                echo "> $task in $LOCALPROJECTID : RUN"
+                echo "> $task : $LOCALPROJECTID : RUN"
             fi
 
             # Call run
             runFunctionSafe "${task}_run" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
-                PROPERTIES=("${taskEnvLast[@]}")
+                PROPERTIES=()
+                copyAssociativeArray taskEnvLast PROPERTIES
+                PARAMETERS=()
+                copyAssociativeArray parametersEnvLast PARAMETERS
                 cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 return $exit
             fi
@@ -354,22 +379,28 @@ function execTasksSingle() {
             if type "${task}_finish" &>/dev/null; then
                 # Show log
                 if [ "$isProject" == true ]; then
-                    echo "> $projectId:$task in $LOCALPROJECTID : FINISH"
+                    echo "> $projectId:$task : $LOCALPROJECTID : FINISH"
                 else
-                    echo "> $task in $LOCALPROJECTID : FINISH"
+                    echo "> $task : $LOCALPROJECTID : FINISH"
                 fi
 
                 runFunctionSafe "${task}_finish" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=("${taskEnvLast[@]}")
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
+                    PARAMETERS=()
+                    copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                     return $exit
                 fi
             fi
 
             # Clean environment
-            PROPERTIES=("${taskEnvLast[@]}")
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
+            PARAMETERS=()
+            copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
             unset -f "${task}_run"
             unset -f "${task}_finish"
