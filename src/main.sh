@@ -25,14 +25,32 @@ function main() {
             1>&2 echo "Error: cannot proceed, root project could not be loaded"
         fi
         exit 1
-    fi 
+    fi
     ROOTPROJECTID="$id"
+    ROOTPROJECTNAME="$name"
+    ROOTPROJECTVERSION="$version"
+    if ! runLocalToProject "$ROOTPROJECTID" loadProjectDependencies ; then
+        if [ ! -f "$PWD/polyfile.pcb" ] && [ ! -f "$PWD/Polyfile.pcb" ]; then
+            1>&2 echo "Error: cannot proceed, please make sure the polyfile exists prior to running polytool"
+        else
+            1>&2 echo "Error: cannot proceed, root project could not be loaded"
+        fi
+        exit 1
+    fi
+    if ! runLocalToProject "$ROOTPROJECTID" loadProjectDependencies true ; then
+        if [ ! -f "$PWD/polyfile.pcb" ] && [ ! -f "$PWD/Polyfile.pcb" ]; then
+            1>&2 echo "Error: cannot proceed, please make sure the polyfile exists prior to running polytool"
+        else
+            1>&2 echo "Error: cannot proceed, root project could not be loaded"
+        fi
+        exit 1
+    fi
 
     # Done loading
     echo
 
     # Setup
-    echo "Root project: $name ($id), version $version"
+    echo "Root project: $ROOTPROJECTNAME ($ROOTPROJECTID), version $ROOTPROJECTVERSION"
 
     # Read arguments
     local skip=0
@@ -128,6 +146,7 @@ function main() {
             # Check syntax
             if [[ "$key" == *=* ]]; then
                 value="${key#*=}"
+                key="${key%=*}"
                 valuePresent=true
             fi
 
@@ -185,6 +204,7 @@ function main() {
             # Check syntax
             if [[ "$key" == *=* ]]; then
                 value="${key#*=}"
+                key="${key%=*}"
                 valuePresent=true
             fi
 
@@ -223,8 +243,8 @@ function main() {
                 hadTask=true
                 taskFound=false
                 runLocalToProject "$relativeToProject" runTask "$lastTask" "${taskParams[@]}"
-                arg="$argBak"
                 local exit=$?
+                arg="$argBak"
                 if [ "$exit" != 0 ]; then
                     # Handle error exit
                     echo -------------------------
