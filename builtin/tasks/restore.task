@@ -9,6 +9,8 @@ function restore_define() {
 function restore_run() {
     # Restore project
     local dirFriendly="${projectsDirFriendly["$LOCALPROJECTID"]}"
+
+    # Restore dependency sheets
     for path in "$LOCALPROJECT/dependencies/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
@@ -55,7 +57,7 @@ function restore_run() {
                 return $exit
             fi
             if [ "$depTypeFound" != "true" ]; then
-                findAndSourceDepTypeFileFromProject "$LOCALPROJECTID" "$type" 
+                findAndSourceDepTypeFileFromProject "$localProjectId" "$type" 
                 if [ "$baseProjectId" != "$localProjectId" ]; then
                     findAndSourceDepTypeFileFromProject "$baseProjectId" "$type"
                     local exit=$?
@@ -202,6 +204,7 @@ function restore_run() {
 
             # Check result
             local path="$LOCALPROJECT/$depOutput"
+            local dependencyId="$LOCALPROJECTID"
             if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]); then
                 # Get set ID
                 local setId="${projectsSetIds["$LOCALPROJECTID"]}"
@@ -218,13 +221,15 @@ function restore_run() {
                 local currentProject="$LOCALPROJECT"
                 local currentProjectVersion="$LOCALPROJECTVERSION"
                 local currentProjectGroup="$LOCALPROJECTVERSION"
+                local currentDependencyProjectPaths=("${dependencyProjectPaths[@]}")
+                local currentSubProjectPaths=("${subProjectPaths[@]}")
                 declare -A currentLocalProperties=()
                 copyAssociativeArray LOCALPROPERTIES currentLocalProperties
 
                 # Prepare paths
                 local pathName="$(basename "$path")"
                 local currentId="$LOCALPROJECTID"
-                local pathpretty="$projectDirPretty/dependencies/$pathName"
+                local pathpretty="$projectDirPretty/$depOutput"
                 local fullpath="$(readlink -f "$path")"
 
                 # Get current base
@@ -240,11 +245,19 @@ function restore_run() {
                 BASEBUILDDIR=undefined
                 BASEPROJECTVERSION=undefined
                 BASEPROJECTGROUP=undefined
+                dependencyProjectPaths=()
+                subProjectPaths=()
+                local currentCwd="$PWD"
+                cd "$fullpath"
                 
                 # Try loading it
-                name="dependency $pathName"
-                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" false false false ">>> " ; then
-                    1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
+                name="dependency $dependencyId"
+                local restorefull="false"
+                if [ "${PARAMETERS["sparse"]}" != true ]; then 
+                    restorefull=true
+                fi
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $dependencyId" "" "$restorefull" false false ">>> " ; then
+                    1>&2 echo "Error: error loading dependency \"$dependencyId\": project could not be loaded"
                     return 1
                 fi
                 BASEPROJECT="$baseProject"
@@ -260,7 +273,23 @@ function restore_run() {
                     eval "dependencies_$setId"'+=("'"$loadedId"'")'
                 fi
 
+                # Restore dependencies
+                if [ "${PARAMETERS["sparse"]}" != true ]; then 
+                    if ! arrayContains "$fullpath" ANTIRECURSIONLIST; then
+                        local recLAST="$RESTORERECURSING"
+                        RESTORERECURSING=true
+                        local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+                        ANTIRECURSIONLIST=()
+                        ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
+                        ANTIRECURSIONLIST+=("$fullpath")
+                        restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>>/g" | sed "s/^>>> >/>>> /g"
+                        RESTORERECURSING="$recLAST"
+                        ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
+                    fi
+                fi
+
                 # Restore environment
+                cd "$currentCwd"
                 BASEPROJECT="$currentBaseProject"
                 BASEBUILDDIR="$currentBaseBuild"
                 BASEPROJECTID="$currentBaseId"
@@ -271,6 +300,8 @@ function restore_run() {
                 LOCALPROJECTGROUP="$currentProjectGroup"
                 BUILDDIR="$currentProjectBuild"
                 LOCALPROJECT="$currentProject"
+                dependencyProjectPaths=("${currentDependencyProjectPaths[@]}")
+                subProjectPaths=("${currentSubProjectPaths[@]}")
                 LOCALPROPERTIES=()
                 copyAssociativeArray currentLocalProperties LOCALPROPERTIES
             fi
@@ -283,145 +314,225 @@ function restore_run() {
         fi
     done
 
-    # Deep restore
-    if [ "${PARAMETERS["sparse"]}" != true ]; then 
-        for path in "$LOCALPROJECT/dependencies/"*.dep; do
-            # Load dependency project if polyfile is present
-            if [ -f "$path" ]; then
-                # Load dependency sheet
-                depFile="$(basename "$path")"
-                depFilePretty="$dirFriendly/dependencies/$(basename "$path")"
+    # Then restore defined dependencies, which might be created only after restoring
+    for depOutput in "${dependencyProjectPaths[@]}"; do
+        if [ "$depOutput" == "" ]; then 
+            continue
+        fi 
 
-                # Setup
-                setupDependencyEnvironment "$path"
+        # Check output
+        local path="$LOCALPROJECT/$depOutput"
+        if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]); then
+            echo ">> Restoring: $(basename "$path")"
 
-                # Load file
-                source "$path" || loadDependencyError "$depFilePretty"
+            # Get set ID
+            local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+            local projectDirPretty="${projectsDirFriendly["$LOCALPROJECTID"]}"
 
-                # Load overload
-                local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
-                if [ -f "$localOverload" ]; then 
-                    source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
-                fi
+            # Get project environment
+            local currentBaseProject="$BASEPROJECT"
+            local currentBaseBuild="$BASEBUILDDIR"
+            local currentBaseId="$BASEPROJECTID"
+            local currentBaseVersion="$BASEPROJECTVERSION"
+            local currentBaseGroup="$BASEPROJECTGROUP"
+            local currentProjectId="$LOCALPROJECTID"
+            local currentProjectBuild="$BUILDDIR"
+            local currentProject="$LOCALPROJECT"
+            local currentProjectVersion="$LOCALPROJECTVERSION"
+            local currentProjectGroup="$LOCALPROJECTVERSION"
+            declare -A currentLocalProperties=()
+            copyAssociativeArray LOCALPROPERTIES currentLocalProperties
+            local currentDependencyProjectPaths=("${dependencyProjectPaths[@]}")
+            local currentSubProjectPaths=("${subProjectPaths[@]}")
 
-                # Check required fields
-                if [ "$type" == "undefined" ]; then
-                    1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'type' field!"
-                    return 1
-                fi
-                if [ "$id" == "undefined" ]; then
-                    1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'id' field!"
-                    return 1
-                fi
-                if [ "$output" == "undefined" ]; then
-                    1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'output' field!"
-                    return 1
-                fi
-                depOutput="$output"
+            # Prepare paths
+            local pathName="$(basename "$path")"
+            local currentId="$LOCALPROJECTID"
+            local pathpretty="$projectDirPretty/$depOutput"
+            local fullpath="$(readlink -f "$path")"
 
-                # Clean
-                local dependId="$id"
-                cleanDependencyEnvironment "$path"
+            # Get current base
+            local baseProject="$BASEPROJECT"
+            local baseProjectId="$BASEPROJECTID"
+            local baseProjectVersion="$BASEPROJECTVERSION"
+            local baseProjectGroup="$BASEPROJECTGROUP"
+            local baseBuild="$BASEBUILDDIR"
 
-                # Check result
-                local path="$LOCALPROJECT/$depOutput"
-                if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]) && [ -d "$path/dependencies" ]; then
-                    echo ">> Restoring dependencies for: $dependId"
-
-                    # Get set ID
-                    local setId="${projectsSetIds["$LOCALPROJECTID"]}"
-                    local projectDirPretty="${projectsDirFriendly["$LOCALPROJECTID"]}"
-
-                    # Get project environment
-                    local currentBaseProject="$BASEPROJECT"
-                    local currentBaseBuild="$BASEBUILDDIR"
-                    local currentBaseId="$BASEPROJECTID"
-                    local currentBaseVersion="$BASEPROJECTVERSION"
-                    local currentBaseGroup="$BASEPROJECTGROUP"
-                    local currentProjectId="$LOCALPROJECTID"
-                    local currentProjectBuild="$BUILDDIR"
-                    local currentProject="$LOCALPROJECT"
-                    local currentProjectVersion="$LOCALPROJECTVERSION"
-                    local currentProjectGroup="$LOCALPROJECTVERSION"
-                    declare -A currentLocalProperties=()
-                    copyAssociativeArray LOCALPROPERTIES currentLocalProperties
-
-                    # Prepare paths
-                    local pathName="$(basename "$path")"
-                    local currentId="$LOCALPROJECTID"
-                    local pathpretty="$projectDirPretty/dependencies/$pathName"
-                    local fullpath="$(readlink -f "$path")"
-
-                    # Get current base
-                    local baseProject="$BASEPROJECT"
-                    local baseProjectId="$BASEPROJECTID"
-                    local baseProjectVersion="$BASEPROJECTVERSION"
-                    local baseProjectGroup="$BASEPROJECTGROUP"
-                    local baseBuild="$BASEBUILDDIR"
-
-                    # Unset, dependencies each are treated as a base
-                    BASEPROJECT=undefined
-                    BASEPROJECTID=undefined
-                    BASEBUILDDIR=undefined
-                    BASEPROJECTVERSION=undefined
-                    BASEPROJECTGROUP=undefined
-                    
-                    # Try loading it
-                    name="dependency $pathName"
-                    if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" true false false ">>> " ; then
-                        1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
-                        return 1
-                    fi
-                    BASEPROJECT="$baseProject"
-                    BASEPROJECTID="$baseProjectId"
-                    BASEBUILDDIR="$baseBuild"
-                    BASEPROJECTVERSION="$baseProjectVersion"
-                    BASEPROJECTGROUP="$baseProjectGroup"
-                    local loadedId="$id"
-
-                    # Loaded successfully
-                    # Add project to list
-                    if ! arrayContains "$loadedId" "dependencies_$setId"; then
-                        eval "dependencies_$setId"'+=("'"$loadedId"'")'
-                    fi
-
-                    # Restore dependencies
-                    if ! arrayContains "$fullpath" ANTIRECURSIONLIST; then
-                        local recLAST="$RESTORERECURSING"
-                        RESTORERECURSING=true
-                        local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
-                        ANTIRECURSIONLIST=()
-                        ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
-                        ANTIRECURSIONLIST+=("$fullpath")
-                        callSingleTaskForcedClearStack "restore"
-                        RESTORERECURSING="$recLAST"
-                        ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
-                    fi
-
-                    # Restore environment
-                    BASEPROJECT="$currentBaseProject"
-                    BASEBUILDDIR="$currentBaseBuild"
-                    BASEPROJECTID="$currentBaseId"
-                    BASEPROJECTVERSION="$currentBaseVersion"
-                    BASEPROJECTGROUP="$currentBaseGroup"
-                    LOCALPROJECTID="$currentProjectId"
-                    LOCALPROJECTVERSION="$currentProjectVersion"
-                    LOCALPROJECTGROUP="$currentProjectGroup"
-                    BUILDDIR="$currentProjectBuild"
-                    LOCALPROJECT="$currentProject"
-                    LOCALPROPERTIES=()
-                    copyAssociativeArray currentLocalProperties LOCALPROPERTIES
-                fi
-                
-                # Clean
-                cleanDependencyEnvironment "$path"
+            # Unset, dependencies each are treated as a base
+            BASEPROJECT=undefined
+            BASEPROJECTID=undefined
+            BASEBUILDDIR=undefined
+            BASEPROJECTVERSION=undefined
+            BASEPROJECTGROUP=undefined
+            dependencyProjectPaths=()
+            subProjectPaths=()
+            local currentCwd="$PWD"
+            cd "$fullpath"
+            
+            # Try loading it
+            name="dependency $pathName"
+            local restorefull="false"
+            if [ "${PARAMETERS["sparse"]}" != true ]; then 
+                restorefull=true
             fi
-        done
-    fi
+            if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" "$restorefull" false false ">>> " ; then
+                1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
+                return 1
+            fi
+            BASEPROJECT="$baseProject"
+            BASEPROJECTID="$baseProjectId"
+            BASEBUILDDIR="$baseBuild"
+            BASEPROJECTVERSION="$baseProjectVersion"
+            BASEPROJECTGROUP="$baseProjectGroup"
+            local loadedId="$id"
 
+            # Loaded successfully
+            # Add project to list
+            if ! arrayContains "$loadedId" "dependencies_$setId"; then
+                eval "dependencies_$setId"'+=("'"$loadedId"'")'
+            fi
+
+            # Restore dependencies
+            if [ "${PARAMETERS["sparse"]}" != true ]; then 
+                if ! arrayContains "$fullpath" ANTIRECURSIONLIST; then
+                    local recLAST="$RESTORERECURSING"
+                    RESTORERECURSING=true
+                    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+                    ANTIRECURSIONLIST=()
+                    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
+                    ANTIRECURSIONLIST+=("$fullpath")
+                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>>/g" | sed "s/^>>> >/>>> /g"
+                    RESTORERECURSING="$recLAST"
+                    ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
+                fi
+            fi
+
+            # Restore environment
+            cd "$currentCwd"
+            BASEPROJECT="$currentBaseProject"
+            BASEBUILDDIR="$currentBaseBuild"
+            BASEPROJECTID="$currentBaseId"
+            BASEPROJECTVERSION="$currentBaseVersion"
+            BASEPROJECTGROUP="$currentBaseGroup"
+            LOCALPROJECTID="$currentProjectId"
+            LOCALPROJECTVERSION="$currentProjectVersion"
+            LOCALPROJECTGROUP="$currentProjectGroup"
+            BUILDDIR="$currentProjectBuild"
+            LOCALPROJECT="$currentProject"
+            LOCALPROPERTIES=()
+            copyAssociativeArray currentLocalProperties LOCALPROPERTIES
+            dependencyProjectPaths=("${currentDependencyProjectPaths[@]}")
+            subProjectPaths=("${currentSubProjectPaths[@]}")
+        fi
+    done
+
+    # Then restore subprojects, which might be created only after restoring
+    for subProjectPath in "${subProjectPaths[@]}"; do
+        if [ "$subProjectPath" == "" ]; then 
+            continue
+        fi 
+
+        # Check output
+        local path="$LOCALPROJECT/$subProjectPath"
+        if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]); then
+            echo ">> Restoring: $(basename "$path")"
+
+            # Get set ID
+            local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+            local projectDirPretty="${projectsDirFriendly["$LOCALPROJECTID"]}"
+
+            # Get project environment
+            local currentBaseProject="$BASEPROJECT"
+            local currentBaseBuild="$BASEBUILDDIR"
+            local currentBaseId="$BASEPROJECTID"
+            local currentBaseVersion="$BASEPROJECTVERSION"
+            local currentBaseGroup="$BASEPROJECTGROUP"
+            local currentProjectId="$LOCALPROJECTID"
+            local currentProjectBuild="$BUILDDIR"
+            local currentProject="$LOCALPROJECT"
+            local currentProjectVersion="$LOCALPROJECTVERSION"
+            local currentProjectGroup="$LOCALPROJECTVERSION"
+            declare -A currentLocalProperties=()
+            copyAssociativeArray LOCALPROPERTIES currentLocalProperties
+            local currentDependencyProjectPaths=("${dependencyProjectPaths[@]}")
+            local currentSubProjectPaths=("${subProjectPaths[@]}")
+
+            # Prepare paths
+            local pathName="$(basename "$path")"
+            local currentId="$LOCALPROJECTID"
+            local pathpretty="$projectDirPretty/$subProjectPath"
+            local fullpath="$(readlink -f "$path")"
+
+            # Get current base
+            local baseProject="$BASEPROJECT"
+            local baseProjectId="$BASEPROJECTID"
+            local baseProjectVersion="$BASEPROJECTVERSION"
+            local baseProjectGroup="$BASEPROJECTGROUP"
+            local baseBuild="$BASEBUILDDIR"
+
+            # Unset
+            dependencyProjectPaths=()
+            subProjectPaths=()
+            local currentCwd="$PWD"
+            cd "$fullpath"
+            
+            # Try loading it
+            name="subproject $pathName"
+            local restorefull="false"
+            if [ "${PARAMETERS["sparse"]}" != true ]; then 
+                restorefull=true
+            fi
+            if ! loadProject "$pathpretty" "$fullpath" "subproject $pathName" "" "$restorefull" false false ">>> " ; then
+                1>&2 echo "Error: error loading subproject \"$pathName\": project could not be loaded"
+                return 1
+            fi
+            local loadedId="$id"
+
+            # Loaded successfully
+            # Add project to list
+            if ! arrayContains "$loadedId" "dependencies_$setId"; then
+                eval "dependencies_$setId"'+=("'"$loadedId"'")'
+            fi
+
+            # Restore dependencies
+            if [ "${PARAMETERS["sparse"]}" != true ]; then 
+                if ! arrayContains "$fullpath" ANTIRECURSIONLIST; then
+                    local recLAST="$RESTORERECURSING"
+                    RESTORERECURSING=true
+                    local callTaskListLast=("${ANTIRECURSIONLIST[@]}")
+                    ANTIRECURSIONLIST=()
+                    ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
+                    ANTIRECURSIONLIST+=("$fullpath")
+                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>>/g" | sed "s/^>>> >/>>> /g"
+                    RESTORERECURSING="$recLAST"
+                    ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
+                fi
+            fi
+
+            # Restore environment
+            cd "$currentCwd"
+            BASEPROJECT="$currentBaseProject"
+            BASEBUILDDIR="$currentBaseBuild"
+            BASEPROJECTID="$currentBaseId"
+            BASEPROJECTVERSION="$currentBaseVersion"
+            BASEPROJECTGROUP="$currentBaseGroup"
+            LOCALPROJECTID="$currentProjectId"
+            LOCALPROJECTVERSION="$currentProjectVersion"
+            LOCALPROJECTGROUP="$currentProjectGroup"
+            BUILDDIR="$currentProjectBuild"
+            LOCALPROJECT="$currentProject"
+            LOCALPROPERTIES=()
+            copyAssociativeArray currentLocalProperties LOCALPROPERTIES
+            dependencyProjectPaths=("${currentDependencyProjectPaths[@]}")
+            subProjectPaths=("${currentSubProjectPaths[@]}")
+        fi
+    done
+    
     # Reload projects
     if [ "$RESTORERECURSING" != "true" ]; then
-        echo "> Reloading projects..."
+        echo ">> Reloading projects..."
+
+        # Reset entire environment
         local lPWD="$PWD"
         cd "$ROOTPROJECT"
         ROOTPROJECT=undefined
@@ -451,7 +562,9 @@ function restore_run() {
         projectsBaseProjectIds=()
         setIds=()
         LOCALPROPERTIES=()
-        if ! loadProject "<root>" "$PWD" "<root project>" "" false false false ">> " ; then
+
+        # Load projects
+        if ! loadProject "<root>" "$PWD" "<root project>" "" false false false ">>> " ; then
             if [ ! -f "$PWD/polyfile.pcb" ] && [ ! -f "$PWD/Polyfile.pcb" ]; then
                 1>&2 echo "Error: cannot proceed, please make sure the polyfile exists prior to running polytool"
             else
@@ -462,7 +575,7 @@ function restore_run() {
         ROOTPROJECTID="$id"
         ROOTPROJECTNAME="$name"
         ROOTPROJECTVERSION="$version"
-        if ! runLocalToProject "$ROOTPROJECTID" loadProjectDependencies false false false ">> " ; then
+        if ! runLocalToProject "$ROOTPROJECTID" loadProjectDependencies false false false ">>> " ; then
             if [ ! -f "$PWD/polyfile.pcb" ] && [ ! -f "$PWD/Polyfile.pcb" ]; then
                 1>&2 echo "Error: cannot proceed, please make sure the polyfile exists prior to running polytool"
             else
@@ -470,7 +583,7 @@ function restore_run() {
             fi
             exit 1
         fi
-        if ! runLocalToProject "$ROOTPROJECTID" loadProjectDependencies true false false ">> " ; then
+        if ! runLocalToProject "$ROOTPROJECTID" loadProjectDependencies true false false ">>> " ; then
             if [ ! -f "$PWD/polyfile.pcb" ] && [ ! -f "$PWD/Polyfile.pcb" ]; then
                 1>&2 echo "Error: cannot proceed, please make sure the polyfile exists prior to running polytool"
             else

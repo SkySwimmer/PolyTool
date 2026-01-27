@@ -179,6 +179,7 @@ function loadProject() {
     done
     setIds+=("$setId")
     eval 'declare -g '"dependencies_$setId"'=()'
+    eval 'declare -g '"defineddependencies_$setId"'=()'
     eval 'declare -g '"subprojects_$setId"'=()'
     eval 'declare -Ag '"locals_$setId"'=()'
 
@@ -186,6 +187,7 @@ function loadProject() {
     eval "locals_$setId"'=()'
     copyAssociativeArray PROPERTIES "locals_$setId"
     eval "dependencies_$setId"'=()'
+    eval "defineddependencies_$setId"'=()'
     eval "subprojects_$setId"'=()'
 
     # Create project entry
@@ -220,6 +222,54 @@ function loadProject() {
         ["$id"]="$setId"
     )
 
+    # First load defined dependencies
+    for depOutput in "${dependencyProjectPaths[@]}"; do
+        # Check output
+        eval "defineddependencies_$setId"'+=("'"$depOutput"'")'
+        local path="$projectRealDir/$depOutput"
+        if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]) && [ "$loadDependencies" == "true" ]; then
+            # Prepare paths
+            local pathName="$(basename "$path")"
+            local currentId=$id
+            local pathpretty="$projectDir/$depOutput"
+            local fullpath="$(readlink -f "$path")"
+
+            # Get current base
+            local baseProject="$BASEPROJECT"
+            local baseProjectId="$BASEPROJECTID"
+            local baseProjectVersion="$BASEPROJECTVERSION"
+            local baseProjectGroup="$BASEPROJECTGROUP"
+            local baseBuild="$BASEBUILDDIR"
+
+            # Unset, dependencies each are treated as a base
+            BASEPROJECT=undefined
+            BASEPROJECTID=undefined
+            BASEBUILDDIR=undefined
+            BASEPROJECTVERSION=undefined
+            BASEPROJECTGROUP=undefined
+            local currentCwd="$PWD"
+            cd "$fullpath"
+            
+            # Try loading it
+            name="dependency $pathName"
+            if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" "$loadDependencies" "$forceReloadDependencies" "$forceReloadDependencies" "$logPrefix" ; then
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+                1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): dependency \"$pathpretty\" could not be loaded"
+                return 1
+            fi
+            cd "$currentCwd"
+            BASEPROJECT="$baseProject"
+            BASEPROJECTID="$baseProjectId"
+            BASEBUILDDIR="$baseBuild"
+            BASEPROJECTVERSION="$baseProjectVersion"
+            BASEPROJECTGROUP="$baseProjectGroup"
+
+            # Loaded successfully
+            # Add project to list
+            eval "dependencies_$setId"'+=("'"$id"'")'
+        fi
+    done
+
     # Load dependencies that are present
     for path in "$projectRealDir/dependencies/"*.dep; do
         # Load dependency project if polyfile is present
@@ -251,6 +301,7 @@ function loadProject() {
                 return 1
             fi
             depOutput="$output"
+            local dependencyId="$id"
             
             # Clean
             cleanDependencyEnvironment "$path"
@@ -261,7 +312,7 @@ function loadProject() {
                 # Prepare paths
                 local pathName="$(basename "$path")"
                 local currentId=$id
-                local pathpretty="$projectDir/dependencies/$pathName"
+                local pathpretty="$projectDir/$depOutput"
                 local fullpath="$(readlink -f "$path")"
 
                 # Get current base
@@ -277,14 +328,17 @@ function loadProject() {
                 BASEBUILDDIR=undefined
                 BASEPROJECTVERSION=undefined
                 BASEPROJECTGROUP=undefined
+                local currentCwd="$PWD"
+                cd "$fullpath"
                 
                 # Try loading it
-                name="dependency $pathName"
-                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" "$loadDependencies" "$forceReloadDependencies" "$forceReloadDependencies" "$logPrefix" ; then
+                name="dependency $dependencyId"
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $dependencyId" "" "$loadDependencies" "$forceReloadDependencies" "$forceReloadDependencies" "$logPrefix" ; then
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")
-                    1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): dependency \"$pathName\" could not be loaded"
+                    1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): dependency \"$dependencyId\" could not be loaded"
                     return 1
                 fi
+                cd "$currentCwd"
                 BASEPROJECT="$baseProject"
                 BASEPROJECTID="$baseProjectId"
                 BASEBUILDDIR="$baseBuild"
@@ -334,12 +388,15 @@ function loadProject() {
     # Load sub projects
     for path in "${subProjectPaths[@]}"; do
         # Check existence
+        eval "definedsubprojects_$setId"'+=("'"$path"'")'
         local fullpath="$projectRealDir/$path"
         if [ -d "$fullpath" ]; then
             # Found sub-project folder
             local currentId=$id
             local pathpretty="$projectDir/$path"
             local fullpath="$(readlink -f "$fullpath")"
+            local currentCwd="$PWD"
+            cd "$fullpath"
             
             # Try loading it
             name="subproject $path"
@@ -348,6 +405,7 @@ function loadProject() {
                 1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): sub-project \"$path\" could not be loaded"
                 return 1
             fi
+            cd "$currentCwd"
 
             # Loaded successfully
             # Add project to list
@@ -404,6 +462,97 @@ function loadProject() {
 }
 
 function loadProjectDependencies() {
+    # First load defined dependencies
+    for depOutput in "${dependencyProjectPaths[@]}"; do
+        if [ "$depOutput" == "" ]; then 
+            continue
+        fi 
+        # Check output
+        local path="$LOCALPROJECT/$depOutput"
+        if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]); then
+            # Get set ID
+            local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+            local projectDirPretty="${projectsDirFriendly["$LOCALPROJECTID"]}"
+
+            # Get project environment
+            local currentBaseProject="$BASEPROJECT"
+            local currentBaseBuild="$BASEBUILDDIR"
+            local currentBaseId="$BASEPROJECTID"
+            local currentBaseVersion="$BASEPROJECTVERSION"
+            local currentBaseGroup="$BASEPROJECTGROUP"
+            local currentProjectId="$LOCALPROJECTID"
+            local currentProjectBuild="$BUILDDIR"
+            local currentProject="$LOCALPROJECT"
+            local currentProjectVersion="$LOCALPROJECTVERSION"
+            local currentProjectGroup="$LOCALPROJECTVERSION"
+            local currentDependencyProjectPaths=("${dependencyProjectPaths[@]}")
+            local currentSubProjectPaths=("${subProjectPaths[@]}")
+            declare -A currentLocalProperties=()
+            copyAssociativeArray LOCALPROPERTIES currentLocalProperties
+
+            # Prepare paths
+            local pathName="$(basename "$path")"
+            local currentId="$LOCALPROJECTID"
+            local pathpretty="$projectDirPretty/dependencies/$pathName"
+            local fullpath="$(readlink -f "$path")"
+
+            # Get current base
+            local baseProject="$BASEPROJECT"
+            local baseProjectId="$BASEPROJECTID"
+            local baseProjectVersion="$BASEPROJECTVERSION"
+            local baseProjectGroup="$BASEPROJECTGROUP"
+            local baseBuild="$BASEBUILDDIR"
+
+            # Unset, dependencies each are treated as a base
+            BASEPROJECT=undefined
+            BASEPROJECTID=undefined
+            BASEBUILDDIR=undefined
+            BASEPROJECTVERSION=undefined
+            BASEPROJECTGROUP=undefined
+            local currentCwd="$PWD"
+            cd "$fullpath"
+            dependencyProjectPaths=()
+            subProjectPaths=()
+            
+            # Try loading it
+            name="dependency $pathName"
+            if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" "$@" ; then
+                1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
+                return 1
+            fi
+            BASEPROJECT="$baseProject"
+            BASEPROJECTID="$baseProjectId"
+            BASEBUILDDIR="$baseBuild"
+            BASEPROJECTVERSION="$baseProjectVersion"
+            BASEPROJECTGROUP="$baseProjectGroup"
+            local loadedId="$id"
+
+            # Loaded successfully
+            # Add project to list
+            if ! arrayContains "$loadedId" "dependencies_$setId"; then
+                eval "dependencies_$setId"'+=("'"$loadedId"'")'
+            fi
+
+            # Restore environment
+            cd "$currentCwd"
+            BASEPROJECT="$currentBaseProject"
+            BASEBUILDDIR="$currentBaseBuild"
+            BASEPROJECTID="$currentBaseId"
+            BASEPROJECTVERSION="$currentBaseVersion"
+            BASEPROJECTGROUP="$currentBaseGroup"
+            LOCALPROJECTID="$currentProjectId"
+            LOCALPROJECTVERSION="$currentProjectVersion"
+            LOCALPROJECTGROUP="$currentProjectGroup"
+            BUILDDIR="$currentProjectBuild"
+            LOCALPROJECT="$currentProject"
+            dependencyProjectPaths=("${currentDependencyProjectPaths[@]}")
+            subProjectPaths=("${currentSubProjectPaths[@]}")
+            LOCALPROPERTIES=()
+            copyAssociativeArray currentLocalProperties LOCALPROPERTIES
+        fi
+    done
+
+    # Load dependencies
     for path in "$LOCALPROJECT/dependencies/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
@@ -460,6 +609,8 @@ function loadProjectDependencies() {
                 local currentProject="$LOCALPROJECT"
                 local currentProjectVersion="$LOCALPROJECTVERSION"
                 local currentProjectGroup="$LOCALPROJECTVERSION"
+                local currentDependencyProjectPaths=("${dependencyProjectPaths[@]}")
+                local currentSubProjectPaths=("${subProjectPaths[@]}")
                 declare -A currentLocalProperties=()
                 copyAssociativeArray LOCALPROPERTIES currentLocalProperties
 
@@ -482,11 +633,15 @@ function loadProjectDependencies() {
                 BASEBUILDDIR=undefined
                 BASEPROJECTVERSION=undefined
                 BASEPROJECTGROUP=undefined
+                dependencyProjectPaths=()
+                subProjectPaths=()
+                local currentCwd="$PWD"
+                cd "$fullpath"
                 
                 # Try loading it
-                name="dependency $pathName"
-                if ! loadProject "$pathpretty" "$fullpath" "dependency $pathName" "" "$@" ; then
-                    1>&2 echo "Error: error loading dependency \"$pathName\": project could not be loaded"
+                name="dependency $dependencyId"
+                if ! loadProject "$pathpretty" "$fullpath" "dependency $dependencyId" "" "$@" ; then
+                    1>&2 echo "Error: error loading dependency \"$dependencyId\": project could not be loaded"
                     return 1
                 fi
                 BASEPROJECT="$baseProject"
@@ -503,6 +658,7 @@ function loadProjectDependencies() {
                 fi
 
                 # Restore environment
+                cd "$currentCwd"
                 BASEPROJECT="$currentBaseProject"
                 BASEBUILDDIR="$currentBaseBuild"
                 BASEPROJECTID="$currentBaseId"
@@ -513,6 +669,7 @@ function loadProjectDependencies() {
                 LOCALPROJECTGROUP="$currentProjectGroup"
                 BUILDDIR="$currentProjectBuild"
                 LOCALPROJECT="$currentProject"
+                dependencyProjectPaths=("${currentDependencyProjectPaths[@]}")
                 LOCALPROPERTIES=()
                 copyAssociativeArray currentLocalProperties LOCALPROPERTIES
             fi
@@ -528,6 +685,7 @@ function preparePolyFileEnvironment() {
     version="undefined"
     group="undefined"
     name="undefined"
+    dependencyProjectPaths=()
     subProjectPaths=()
 }
 
@@ -567,6 +725,8 @@ function runLocalToProject() {
     local currentProjectId="$LOCALPROJECTID"
     local currentProjectBuild="$BUILDDIR"
     local currentProject="$LOCALPROJECT"
+    local currentDependencyProjectPaths=("${dependencyProjectPaths[@]}")
+    local currentSubProjectPaths=("${subProjectPaths[@]}")
     declare -A currentLocalProperties=()
     copyAssociativeArray LOCALPROPERTIES currentLocalProperties
     local setId="${projectsSetIds["$project"]}"
@@ -582,6 +742,8 @@ function runLocalToProject() {
     LOCALPROJECTGROUP="${projectsGroups["$project"]}"
     BUILDDIR="$projectPath/build"
     LOCALPROJECT="$projectPath"
+    eval 'dependencyProjectPaths=("${'defineddependencies_"$setId"'[@]}")'
+    eval 'subProjectPaths=("${'definedsubprojects"$setId"'[@]}")'
     LOCALPROPERTIES=()
     copyAssociativeArray "locals_$setId" LOCALPROPERTIES
 
@@ -600,6 +762,8 @@ function runLocalToProject() {
     LOCALPROJECTGROUP="$currentProjectGroup"
     BUILDDIR="$currentProjectBuild"
     LOCALPROJECT="$currentProject"
+    dependencyProjectPaths=("${currentDependencyProjectPaths[@]}")
+    subProjectPaths=("${currentSubProjectPaths[@]}")
     LOCALPROPERTIES=()
     copyAssociativeArray currentLocalProperties LOCALPROPERTIES
     id="$currentId"
