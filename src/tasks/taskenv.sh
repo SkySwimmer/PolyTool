@@ -519,6 +519,7 @@ function setupTaskEnvironment() {
                 if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
                     # Update properties
                     PROPERTIES+=(["$key"]="$value")
+                    LOCALPROPERTIES+=(["$key"]="$value")
                 fi
             fi
         elif ([[ "$arg" == "-L"* ]]); then 
@@ -531,6 +532,7 @@ function setupTaskEnvironment() {
                 
                 # Update properties
                 PROPERTIES+=(["$key"]="$value")
+                LOCALPROPERTIES+=(["$key"]="$value")
             fi
         fi
         i=$((i+1))
