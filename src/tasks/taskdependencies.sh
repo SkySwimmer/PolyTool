@@ -55,16 +55,6 @@ function resolveTask() {
             return $exit
         fi
     fi
-    if [ "$rootProjectId" != "$localProjectId" ]; then
-        resolveTaskInProject "$task" "$rootProjectId" "$rootProjectDir" "$callback" "${callbackParams[@]}"
-        local exit=$?
-        if [ "$exit" != 0 ]; then
-            return $exit
-        fi
-        if [ "$taskResolveFound" == "true" ]; then
-            return $exit
-        fi
-    fi
 
     # Check found
     if [ "$taskResolveFound" == "true" ]; then
@@ -163,13 +153,63 @@ function resolveTaskFileExec() {
             # Found task
             taskResolveFound=true
             taskFile="$(readlink -f "$tasksDir/$task.task")"
-            runFunctionSafe "$callback" "$task" "$taskFile" "${callbackParams[@]}"
+            if [ "$callback" != "" ]; then
+                runFunctionSafe "$callback" "$task" "$taskFile" "${callbackParams[@]}"
+            fi
 
             # Return success
             return 0
         fi
     fi
-    return 1
+}
+
+declare -Ag RESOLUTIONRESULTS
+function taskDependenciesResolve() {
+    local args=("$@")
+
+    # Parse command
+    local task="$1"
+    local isProject="$2" # if false, its a runtime task
+    local projectId="$3"
+    local projectDir="$4"
+
+    # Check
+    local taskKey="$projectId-$task"
+    if [ "$isProject" != true ]; then
+        taskKey="RUNTIME@$LOCALPROJECTID@$task"
+    fi
+    
+    # Get task properties
+    taskFile="${TASKMEMORYREFSCANNER_FILES["$taskKey"]}"
+    local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
+    if [ "$setId" != "" ]; then
+        # Got sets!
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        
+        # Run the afterTask tasks as the current task wants to be run AFTER those tasks
+        for tsk in "${dependsList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                if [ "${RESOLUTIONRESULTS["$LOCALPROJECTID-$projectId-$taskKey-$tsk"]}" != "" ]; then
+                    if [ "${RESOLUTIONRESULTS["$LOCALPROJECTID-$projectId-$taskKey-$tsk"]}" != true ]; then
+                        return 1
+                    fi
+                else
+                    local taskResolveFoundLast="$taskResolveFound"
+                    resolveTask "$tsk"
+                    local resolveResult="$taskResolveFound"
+                    RESOLUTIONRESULTS["$LOCALPROJECTID-$projectId-$taskKey-$tsk"]="$resolveResult"
+                    taskResolveFound="$taskResolveFoundLast"
+                    if [ "$resolveResult" != "true" ]; then
+                        return 1
+                    fi
+                fi
+            fi
+        done
+    fi
+    return 0
 }
 
 function tasksDependenciesExecPre() {
@@ -323,6 +363,30 @@ function onPrepareTaskFound_Init() {
             1>&2 echo Error: task discovery failed due to a failed define call, please check the log for errors
             exit $exit
         fi
+    fi
+
+    # Check relative
+    if ! arrayContains "$LOCALPROJECTID-$task" TASKS_RELATIVE_TO_CALLER; then
+        for depend in "${dependsList[@]}"; do
+            local taskResolveFoundLast="$taskResolveFound"
+            resolveTask "$depend"
+            local resolveResult="$taskResolveFound"
+            taskResolveFound="$taskResolveFoundLast"
+            if [ "$resolveResult" != true ]; then
+                1>&2 echo "Error: failed to define task '$task' of project $projectId: dependency task not recognized: $depend"
+                exit $exit
+            fi
+        done
+        for depend in "${loadOntoList[@]}"; do
+            local taskResolveFoundLast="$taskResolveFound"
+            resolveTask "$depend"
+            local resolveResult="$taskResolveFound"
+            taskResolveFound="$taskResolveFoundLast"
+            if [ "$resolveResult" != true ]; then
+                1>&2 echo "Error: failed to define task '$task' of project $projectId: dependency task not recognized: $depend"
+                exit $exit
+            fi
+        done
     fi
 
     # Create dependency lists
