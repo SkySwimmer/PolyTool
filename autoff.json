@@ -6,8 +6,7 @@
             "develop"
         ],
         "stable": [
-            "experimental",
-            "develop"
+            "experimental"
         ]
     },
     "hardMergeFor": {

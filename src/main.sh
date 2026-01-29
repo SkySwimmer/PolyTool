@@ -52,74 +52,6 @@ function main() {
     # Setup
     echo "Root project: $ROOTPROJECTNAME ($ROOTPROJECTID), version $ROOTPROJECTVERSION"
 
-    # Read arguments
-    local skip=0
-    local i=0
-    local len="${#args[@]}"
-    for arg in "${args[@]}"; do
-        # Check argument
-        if ((skip > 0)); then
-            skip=$((skip-1))
-            continue
-        fi
-        if [[ "$arg" == "--"* ]]; then 
-            # Substring it
-            local key="${arg#*--}"
-            local valuePresent=false
-            local valueKeyPresent=false
-            local valueKey=""
-            local value=""
-
-            # Check syntax
-            if [[ "$key" == *:* ]]; then
-                valueKey="${key#*:}"
-                key="${key%:*}"
-                valueKeyPresent=true
-                if [[ "$valueKey" == *=* ]]; then
-                    value="${valueKey#*=}"
-                    valueKey="${valueKey%=*}"
-                    valuePresent=true
-                fi
-            fi
-
-            # Check key
-            if ([ "$key" == "assign-global" ] || [ "$key" == "global-property" ]); then
-                if [ "$valueKeyPresent" != true ] && ((i + 1 < len)); then
-                    i=$((i+1))
-                    skip=$((skip+1))
-                    valueKey="${args[$i]}"
-                    valueKeyPresent=true
-                    if [[ "$valueKey" == *=* ]]; then
-                        value="${valueKey#*=}"
-                        valueKey="${valueKey%=*}"
-                        valuePresent=true
-                    fi
-                fi
-                if [ "$valuePresent" != true ] && ((i + 1 < len)); then
-                    i=$((i+1))
-                    skip=$((skip+1))
-                    value="${args[$i]}"
-                    valuePresent=true
-                fi
-                if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
-                    # Update properties
-                    GLOBALPROPERTIES+=(["$key"]="$value")
-                fi
-            fi
-        elif [[ "$arg" == "-X"* ]]; then 
-            # Assign global
-            local key="${arg#*-X}"
-            if [[ "$key" == *=* ]]; then
-                value="${arg#*=}"
-                key="${key%=*}"
-                
-                # Update properties
-                GLOBALPROPERTIES+=(["$key"]="$value")
-            fi
-        fi
-        i=$((i+1))
-    done
-
     # Process arguments like the project
     local skip=0
     local i=0
@@ -189,6 +121,65 @@ function main() {
             continue
         fi
 
+        # Handle globals
+        # Done ruring argument handling so that global assignment arguments are relative to each task
+        # Locals cannot be done here due to how they are stored per project, they are handled by tasks
+        if [[ "$arg" == "--"* ]]; then 
+            # Substring it
+            local key="${arg#*--}"
+            local valuePresent=false
+            local valueKeyPresent=false
+            local valueKey=""
+            local value=""
+
+            # Check syntax
+            if [[ "$key" == *:* ]]; then
+                valueKey="${key#*:}"
+                key="${key%:*}"
+                valueKeyPresent=true
+                if [[ "$valueKey" == *=* ]]; then
+                    value="${valueKey#*=}"
+                    valueKey="${valueKey%=*}"
+                    valuePresent=true
+                fi
+            fi
+
+            # Check key
+            if ([ "$key" == "assign-global" ] || [ "$key" == "global-property" ]); then
+                if [ "$valueKeyPresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    valueKey="${args[$i]}"
+                    valueKeyPresent=true
+                    if [[ "$valueKey" == *=* ]]; then
+                        value="${valueKey#*=}"
+                        valueKey="${valueKey%=*}"
+                        valuePresent=true
+                    fi
+                fi
+                if [ "$valuePresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    value="${args[$i]}"
+                    valuePresent=true
+                fi
+                if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
+                    # Update properties
+                    GLOBALPROPERTIES+=(["$key"]="$value")
+                fi
+            fi
+        elif [[ "$arg" == "-X"* ]]; then 
+            # Assign global
+            local key="${arg#*-X}"
+            if [[ "$key" == *=* ]]; then
+                value="${arg#*=}"
+                key="${key%=*}"
+                
+                # Update properties
+                GLOBALPROPERTIES+=(["$key"]="$value")
+            fi
+        fi
+        
         # Add argument if needed
         if [ "$arg" == "--" ]; then 
             # No more tasks, remainer args are to be passed to the next task
