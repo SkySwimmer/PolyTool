@@ -56,6 +56,7 @@ function main() {
     local skip=0
     local i=0
     local taskEnd=false
+    local len="${#args[@]}"
     for arg in "${args[@]}"; do
         # Check argument skip
         if ((skip > 0)); then
@@ -89,6 +90,9 @@ function main() {
                     skip=$((skip+1))
                     value="${args[$i]}"
                     valuePresent=true
+                elif [ "$valuePresent" != true ]; then
+                    1>&2 echo "Error: missing value for 'project' argument"
+                    exit 1
                 fi
 
                 # Check project
