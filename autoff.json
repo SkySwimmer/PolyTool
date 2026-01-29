@@ -1,0 +1,13 @@
+{
+    "enabled": true,
+    "branches": {
+        // Direct branches
+        "experimental": [
+            "develop"
+        ],
+        "stable": [
+            "experimental",
+            "develop"
+        ]
+    }
+}
