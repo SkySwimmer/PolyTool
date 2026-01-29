@@ -15,8 +15,7 @@
             "develop"
         ],
         "stable": [
-            "experimental",
-            "develop"
+            "experimental"
         ]
     }
 }
