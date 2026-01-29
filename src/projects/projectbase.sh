@@ -227,6 +227,12 @@ function loadProject() {
         # Check output
         eval "defineddependencies_$setId"'+=("'"$depOutput"'")'
         local path="$projectRealDir/$depOutput"
+        local pathpretty="$projectDir/$depOutput"
+        if [ ! -d "$path" ]; then
+            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+            1>&2 echo "Error: error loading project: $projectName ($id, $projectDir): dependency \"$pathpretty\" could not be loaded"
+            return 1
+        fi
         if [ -d "$path" ] && ([ -f "$path/polyfile.pcb" ] || [ -f "$path/Polyfile.pcb" ]) && [ "$loadDependencies" == "true" ]; then
             # Prepare paths
             local pathName="$(basename "$path")"

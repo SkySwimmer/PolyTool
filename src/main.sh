@@ -51,6 +51,7 @@ function main() {
 
     # Setup
     echo "Root project: $ROOTPROJECTNAME ($ROOTPROJECTID), version $ROOTPROJECTVERSION"
+    echo "Preparing task runner..."
 
     # Process arguments like the project
     local skip=0

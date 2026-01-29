@@ -726,11 +726,7 @@ function applyTaskDefineEnvironment() {
         fi
     fi
     if [ "$runRelativeToCallerProject" == "true" ]; then
-        if [ "$isProject" == true ]; then
-            TASKS_RELATIVE_TO_CALLER+=("$projectId-$task")
-        else
-            TASKS_RELATIVE_TO_CALLER+=("RUNTIME@$LOCALPROJECTID@$task")
-        fi
+        TASKS_RELATIVE_TO_CALLER+=("$projectId-$task")
     fi
 }
 

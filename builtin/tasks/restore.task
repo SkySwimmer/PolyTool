@@ -284,7 +284,7 @@ function restore_run() {
                         ANTIRECURSIONLIST+=("$fullpath")
                         environmentPrepareProjectTasks "restore" "$id" "$LOCALPROJECT"
                         tasksDependenciesExecPre "restore" false "$id" "$LOCALPROJECT"
-                        restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>>/g" | sed "s/^>>> >/>>> /g"
+                        restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                         tasksDependenciesExecPost "restore" false "$id" "$LOCALPROJECT"
                         RESTORERECURSING="$recLAST"
                         ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
@@ -406,7 +406,7 @@ function restore_run() {
                     ANTIRECURSIONLIST+=("$fullpath")
                     environmentPrepareProjectTasks "restore" "$id" "$LOCALPROJECT"
                     tasksDependenciesExecPre "restore" false "$id" "$LOCALPROJECT"
-                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>>/g" | sed "s/^>>> >/>>> /g"
+                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     tasksDependenciesExecPost "restore" false "$id" "$LOCALPROJECT"
                     RESTORERECURSING="$recLAST"
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
@@ -511,7 +511,7 @@ function restore_run() {
                     ANTIRECURSIONLIST+=("$fullpath")
                     environmentPrepareProjectTasks "restore" "$id" "$LOCALPROJECT"
                     tasksDependenciesExecPre "restore" false "$id" "$LOCALPROJECT"
-                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>>/g" | sed "s/^>>> >/>>> /g"
+                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     tasksDependenciesExecPost "restore" false "$id" "$LOCALPROJECT"
                     RESTORERECURSING="$recLAST"
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
