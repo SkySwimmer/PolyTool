@@ -9,5 +9,14 @@
             "experimental",
             "develop"
         ]
+    },
+    "hardMergeFor": {
+        "experimental": [
+            "develop"
+        ],
+        "stable": [
+            "experimental",
+            "develop"
+        ]
     }
 }
