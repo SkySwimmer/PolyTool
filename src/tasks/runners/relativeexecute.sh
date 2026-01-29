@@ -70,11 +70,15 @@ function taskRunnerProjectRelativePrepare() {
     arrayCopyOfRange args runnerArgs 4 "${#args[@]}"
 
     # Check state
+    local taskProjectId="$projectId"
+    if arrayContains "$projectId-$task" TASKS_RELATIVE_TO_CALLER; then
+        taskProjectId="$LOCALPROJECTID"
+    fi
     if [ "$onlyWhenNeeded" == "true" ]; then
         # Check if called
-        if arrayContains "$projectId-$task" TASKSBEINGRUN_PREPARE && ! arrayContains "$projectId-$task" TASKS_PERMITTING_MULTIRUN; then
+        if arrayContains "$taskProjectId-$task" TASKSBEINGRUN_PREPARE && ! arrayContains "$taskProjectId-$task" TASKS_PERMITTING_MULTIRUN; then
             # Already run
-            if arrayContains "$projectId-$task" TASKS_FOUND; then
+            if arrayContains "$taskProjectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
             if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -82,12 +86,6 @@ function taskRunnerProjectRelativePrepare() {
             fi
             return 0
         fi
-    fi
-
-    # Add to task history
-    if ! arrayContains "$projectId-$task" TASKSBEINGRUN_PREPARE; then
-        # Add
-        TASKSBEINGRUN_PREPARE+=("$projectId-$task")
     fi
 
     # Initialize tasks, this will also deal with base projects and root projects
@@ -115,6 +113,15 @@ function taskRunnerProjectRelativePrepare() {
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
+        fi
+
+        # Run dependency in local project so the task is run in dependencies
+        if [ "$LOCALPROJECTID" != "$projectId" ]; then
+            runLocalToProject "$projectId" taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                return $exit
+            fi
         fi
     done
 
@@ -213,6 +220,17 @@ function taskRunnerProjectRelativePrepare() {
             ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
+
+        # Run dependency in local project so the task is run in dependencies
+        if [ "$LOCALPROJECTID" != "$projectId" ]; then
+            runLocalToProject "$projectId" taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Revert list
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+                return $exit
+            fi
+        fi
     done
 
     # Revert list
@@ -231,11 +249,15 @@ function taskRunnerProjectRelativeRun() {
     arrayCopyOfRange args runnerArgs 4 "${#args[@]}"
 
     # Check state
+    local taskProjectId="$projectId"
+    if arrayContains "$projectId-$task" TASKS_RELATIVE_TO_CALLER; then
+        taskProjectId="$LOCALPROJECTID"
+    fi
     if [ "$onlyWhenNeeded" == "true" ]; then
         # Check if called
-        if arrayContains "$projectId-$task" TASKSBEINGRUN_RUN && ! arrayContains "$projectId-$task" TASKS_PERMITTING_MULTIRUN; then
+        if arrayContains "$taskProjectId-$task" TASKSBEINGRUN_RUN && ! arrayContains "$taskProjectId-$task" TASKS_PERMITTING_MULTIRUN; then
             # Already run
-            if arrayContains "$projectId-$task" TASKS_FOUND; then
+            if arrayContains "$taskProjectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
             if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -245,12 +267,6 @@ function taskRunnerProjectRelativeRun() {
         fi
     fi
 
-    # Add to task history
-    if ! arrayContains "$projectId-$task" TASKSBEINGRUN_RUN; then
-        # Add
-        TASKSBEINGRUN_RUN+=("$projectId-$task")
-    fi
-    
     # Box recursion list
     # We basically copy the list, making it stack-sensitive
     # After this method finishes, we reset to what it was last
@@ -275,6 +291,17 @@ function taskRunnerProjectRelativeRun() {
             # Revert list
             ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
+        fi
+
+        # Run dependency in local project so the task is run in dependencies
+        if [ "$LOCALPROJECTID" != "$projectId" ]; then
+            runLocalToProject "$projectId" taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Revert list
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+                return $exit
+            fi
         fi
     done
 
@@ -353,6 +380,17 @@ function taskRunnerProjectRelativeRun() {
             ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
+
+        # Run dependency in local project so the task is run in dependencies
+        if [ "$LOCALPROJECTID" != "$projectId" ]; then
+            runLocalToProject "$projectId" taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Revert list
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+                return $exit
+            fi
+        fi
     done
 
     # Revert list
@@ -371,11 +409,15 @@ function taskRunnerProjectRelativeFinish() {
     arrayCopyOfRange args runnerArgs 4 "${#args[@]}"
 
     # Check state
+    local taskProjectId="$projectId"
+    if arrayContains "$projectId-$task" TASKS_RELATIVE_TO_CALLER; then
+        taskProjectId="$LOCALPROJECTID"
+    fi
     if [ "$onlyWhenNeeded" == "true" ]; then
         # Check if called
-        if arrayContains "$projectId-$task" TASKSBEINGRUN_FINISH && ! arrayContains "$projectId-$task" TASKS_PERMITTING_MULTIRUN; then
+        if arrayContains "$taskProjectId-$task" TASKSBEINGRUN_FINISH && ! arrayContains "$taskProjectId-$task" TASKS_PERMITTING_MULTIRUN; then
             # Already run
-            if arrayContains "$projectId-$task" TASKS_FOUND; then
+            if arrayContains "$taskProjectId-$task" TASKS_FOUND; then
                 taskFound=true
             fi
             if arrayContains "RUNTIME@$projectId@$task" TASKS_FOUND || arrayContains "RUNTIME@$task" TASKS_FOUND; then
@@ -383,12 +425,6 @@ function taskRunnerProjectRelativeFinish() {
             fi
             return 0
         fi
-    fi
-
-    # Add to task history
-    if ! arrayContains "$projectId-$task" TASKSBEINGRUN_FINISH; then
-        # Add
-        TASKSBEINGRUN_FINISH+=("$projectId-$task")
     fi
     
     # Box recursion list
@@ -414,8 +450,18 @@ function taskRunnerProjectRelativeFinish() {
         if [ "$exit" != 0 ]; then
             # Revert list
             ANTIRECURSIONLIST=("${callTaskListLast[@]}")
-            
             return $exit
+        fi
+
+        # Run dependency in local project so the task is run in dependencies
+        if [ "$LOCALPROJECTID" != "$projectId" ]; then
+            runLocalToProject "$projectId" taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$depId" "$depDir" "${runnerArgs[@]}"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Revert list
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+                return $exit
+            fi
         fi
     done
 
@@ -496,6 +542,18 @@ function taskRunnerProjectRelativeFinish() {
             
             return $exit
         fi
+
+        # Run dependency in local project so the task is run in dependencies
+        if [ "$LOCALPROJECTID" != "$projectId" ]; then
+            runLocalToProject "$projectId" taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$subProjectId" "$subProjectDir" "${runnerArgs[@]}"
+            local exit=$?
+            if [ "$exit" != 0 ]; then
+                # Revert list
+                ANTIRECURSIONLIST=("${callTaskListLast[@]}")
+                
+                return $exit
+            fi
+        fi
     done
 
     # Revert list
@@ -514,6 +572,15 @@ function execTasksRelativePrepare() {
     local projectDir="$5"
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
+
+    # Verify dependency
+    taskDependenciesResolve "$task" "$isProject" "$projectId" "$projectDir" || return 0
+    
+    # Add to task history
+    if ! arrayContains "$LOCALPROJECTID-$task" TASKSBEINGRUN_PREPARE; then
+        # Add
+        TASKSBEINGRUN_PREPARE+=("$LOCALPROJECTID-$task")
+    fi
 
     # Find task
     if [ -d "$tasksDir" ]; then
@@ -629,6 +696,15 @@ function execTasksRelativeRun() {
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
 
+    # Verify dependency
+    taskDependenciesResolve "$task" "$isProject" "$projectId" "$projectDir" || return 0
+    
+    # Add to task history
+    if ! arrayContains "$LOCALPROJECTID-$task" TASKSBEINGRUN_RUN; then
+        # Add
+        TASKSBEINGRUN_RUN+=("$LOCALPROJECTID-$task")
+    fi
+    
     # Find task
     if [ -d "$tasksDir" ]; then
         # Try to find task
@@ -708,6 +784,15 @@ function execTasksRelativeFinish() {
     local projectDir="$5"
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
+
+    # Verify dependency
+    taskDependenciesResolve "$task" "$isProject" "$projectId" "$projectDir" || return 0
+    
+    # Add to task history
+    if ! arrayContains "$LOCALPROJECTID-$task" TASKSBEINGRUN_FINISH; then
+        # Add
+        TASKSBEINGRUN_FINISH+=("$LOCALPROJECTID-$task")
+    fi
 
     # Find task
     if [ -d "$tasksDir" ]; then
