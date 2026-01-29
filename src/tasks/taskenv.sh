@@ -344,7 +344,8 @@ function setupTaskEnvironment() {
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
 
-    # Apply local properties to properties
+    # Apply global and local properties to properties
+    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
     copyAssociativeArray LOCALPROPERTIES PROPERTIES
 
     # Process parameters
@@ -393,8 +394,8 @@ function setupTaskEnvironment() {
         i=$((i+1))
     done
 
-
     # Read arguments
+    # Global property assignment
     local skip=0
     local i=0
     local len="${#runnerArgs[@]}"
@@ -425,7 +426,7 @@ function setupTaskEnvironment() {
             fi
 
             # Check key
-            if ([ "$key" == "assign-local" ] || [ "$key" == "assign-global" ] || [ "$key" == "local-property" ] || [ "$key" == "global-property" ]); then
+            if ([ "$key" == "assign-global" ] || [ "$key" == "global-property" ]); then
                 if [ "$valueKeyPresent" != true ] && ((i + 1 < len)); then
                     i=$((i+1))
                     skip=$((skip+1))
@@ -448,10 +449,151 @@ function setupTaskEnvironment() {
                     PROPERTIES+=(["$key"]="$value")
                 fi
             fi
-        elif ([[ "$arg" == "-X"* ]] || [[ "$arg" == "-P"* ]]); then 
+        elif [[ "$arg" == "-X"* ]]; then 
             # Global is handled by the polytool main method, but lets still assign here
             # -X = assign global
+            # -L = assign local
             # -P = assign property
+            local key="${arg#*-X}"
+            if [[ "$key" == *=* ]]; then
+                value="${arg#*=}"
+                key="${key%=*}"
+                
+                # Update properties
+                PROPERTIES+=(["$key"]="$value")
+            fi
+        fi
+        i=$((i+1))
+    done
+
+    # Read arguments
+    # Local property assignment
+    local skip=0
+    local i=0
+    local len="${#runnerArgs[@]}"
+    for arg in "${runnerArgs[@]}"; do
+        # Check argument
+        if ((skip > 0)); then
+            skip=$((skip-1))
+            continue
+        fi
+        if [[ "$arg" == "--"* ]]; then 
+            # Substring it
+            local key="${arg#*--}"
+            local valuePresent=false
+            local valueKeyPresent=false
+            local valueKey=""
+            local value=""
+
+            # Check syntax
+            if [[ "$key" == *:* ]]; then
+                valueKey="${key#*:}"
+                key="${key%:*}"
+                valueKeyPresent=true
+                if [[ "$valueKey" == *=* ]]; then
+                    value="${valueKey#*=}"
+                    valueKey="${valueKey%=*}"
+                    valuePresent=true
+                fi
+            fi
+
+            # Check key
+            if ([ "$key" == "assign-local" ] || [ "$key" == "local-property" ]); then
+                if [ "$valueKeyPresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    valueKey="${runnerArgs[$i]}"
+                    valueKeyPresent=true
+                    if [[ "$valueKey" == *=* ]]; then
+                        value="${valueKey#*=}"
+                        valueKey="${valueKey%=*}"
+                        valuePresent=true
+                    fi
+                fi
+                if [ "$valuePresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    value="${runnerArgs[$i]}"
+                    valuePresent=true
+                fi
+                if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
+                    # Update properties
+                    PROPERTIES+=(["$key"]="$value")
+                fi
+            fi
+        elif ([[ "$arg" == "-L"* ]]); then 
+            # Assign locals
+            # -L = assign local property
+            local key="${arg#*-X}"
+            if [[ "$key" == *=* ]]; then
+                value="${arg#*=}"
+                key="${key%=*}"
+                
+                # Update properties
+                PROPERTIES+=(["$key"]="$value")
+            fi
+        fi
+        i=$((i+1))
+    done
+
+    # Read arguments
+    # Taks property assignment
+    local skip=0
+    local i=0
+    local len="${#runnerArgs[@]}"
+    for arg in "${runnerArgs[@]}"; do
+        # Check argument
+        if ((skip > 0)); then
+            skip=$((skip-1))
+            continue
+        fi
+        if [[ "$arg" == "--"* ]]; then 
+            # Substring it
+            local key="${arg#*--}"
+            local valuePresent=false
+            local valueKeyPresent=false
+            local valueKey=""
+            local value=""
+
+            # Check syntax
+            if [[ "$key" == *:* ]]; then
+                valueKey="${key#*:}"
+                key="${key%:*}"
+                valueKeyPresent=true
+                if [[ "$valueKey" == *=* ]]; then
+                    value="${valueKey#*=}"
+                    valueKey="${valueKey%=*}"
+                    valuePresent=true
+                fi
+            fi
+
+            # Check key
+            if ([ "$key" == "assign-property" ] || [ "$key" == "property" ]); then
+                if [ "$valueKeyPresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    valueKey="${runnerArgs[$i]}"
+                    valueKeyPresent=true
+                    if [[ "$valueKey" == *=* ]]; then
+                        value="${valueKey#*=}"
+                        valueKey="${valueKey%=*}"
+                        valuePresent=true
+                    fi
+                fi
+                if [ "$valuePresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    value="${runnerArgs[$i]}"
+                    valuePresent=true
+                fi
+                if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
+                    # Update properties
+                    PROPERTIES+=(["$key"]="$value")
+                fi
+            fi
+        elif ([[ "$arg" == "-P"* ]]); then 
+            # Assign locals
+            # -P = assign task property
             local key="${arg#*-X}"
             if [[ "$key" == *=* ]]; then
                 value="${arg#*=}"
