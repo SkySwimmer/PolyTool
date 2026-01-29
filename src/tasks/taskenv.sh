@@ -392,6 +392,7 @@ function setupTaskEnvironment() {
 
         i=$((i+1))
     done
+
     # Read arguments
     local skip=0
     local i=0
