@@ -459,7 +459,12 @@ function onPrepareTaskFound_Populate() {
             eval "addTo_$setId"'=("${loadOntoList[@]}")'
             eval "afterTask_$setId"'=("${loadAfterList[@]}")'
             eval "beforeTask_$setId"'=("${loadBeforeList[@]}")'
-            resolveTask "$id" resolveTaskAddToTargetCallback "$projectId" "$task" requiresTask "$targetOrderList"
+            if [ "$projectId" != "$LOCALPROJECTID" ]; then
+                resolveTask "$id" resolveTaskAddToTargetCallback "$LOCALPROJECTID" "$task" requiresTask "$targetOrderList"
+                runLocalToProject "$projectId" resolveTask "$id" resolveTaskAddToTargetCallback "$projectId" "$task" requiresTask "$targetOrderList"
+            else
+                resolveTask "$id" resolveTaskAddToTargetCallback "$projectId" "$task" requiresTask "$targetOrderList"
+            fi
             if [ "$taskResolveFound" != "true" ]; then
                 # Error
                 1>&2 echo "Error: could not resolve dependency task \"$id\" for task \"$task\": task not recognized"
@@ -553,8 +558,11 @@ function resolveTaskAddToTargetCallback() {
                 local targetListInst=()
                 eval 'local targetListInst=("${'"${targetList}_$targetSetId"'[@]}")'
 
+                # Get entity
+                local taskEntity="$sourceProject:$taskToAdd"
+                
                 # Add
-                targetListInst+=("$sourceProject:$taskToAdd")
+                targetListInst+=("$taskEntity")
 
                 # Save
                 eval "${targetList}_$targetSetId"'=("${targetListInst[@]}")'
@@ -580,12 +588,6 @@ function findAllTasks() {
     
     # Initialize project
     findAllTasksProject "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-    if [ "$projectId" != "$baseProjectId" ]; then
-        findAllTasksProject "$baseProjectId" "$baseProjectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-    fi 
-    if [ "$projectId" != "$rootProjectId" ]; then
-        findAllTasksProject "$rootProjectId" "$rootProjectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-    fi 
 }
 
 function findAllTasksProject() {
@@ -599,12 +601,6 @@ function findAllTasksProject() {
     local callbackParams=()
     arrayCopyOfRange args callbackParams 4 "${#args[@]}"
 
-    # Check
-    if arrayContains "$projectDir" "$projectListToUse"; then
-        return 0
-    fi
-    eval "$projectListToUse+="'("$projectDir")'
-
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
 
@@ -615,7 +611,7 @@ function findAllTasksProject() {
         local depDir="${projects["$depId"]}"
 
         # Run in dependency
-        runLocalToProject "$depId" findAllTasksProject "$depId" "$depDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
+        findAllTasksProject "$depId" "$depDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             return $exit
@@ -623,7 +619,7 @@ function findAllTasksProject() {
     done
 
     # Find task
-    runLocalToProject "$projectId" execFindAllTasks "$projectDir/tasks" true "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
+    execFindAllTasks "$projectDir/tasks" true "$projectId" "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit
@@ -633,7 +629,7 @@ function findAllTasksProject() {
     local runtimeTaskDir="$RUNTIMEPATH/builtin/tasks"
     if [ -d "$runtimeTaskDir" ]; then
         # Find task
-        runLocalToProject "$projectId" execFindAllTasks "$runtimeTaskDir" false "" "" "$callback" "$projectListToUse" "${callbackParams[@]}"
+        execFindAllTasks "$runtimeTaskDir" false "$projectId" "" "" "$callback" "$projectListToUse" "${callbackParams[@]}"
         local exit=$?
 
         # Handle exit
@@ -649,7 +645,7 @@ function findAllTasksProject() {
         local subProjectDir="${projects["$subProjectId"]}"
 
         # Run in subproject
-        runLocalToProject "$subProjectId" findAllTasksProject "$subProjectId" "$subProjectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
+        findAllTasksProject "$subProjectId" "$subProjectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
             # Revert list
@@ -665,9 +661,10 @@ function execFindAllTasks() {
     # Parse command
     local tasksDir="$1"
     local isProject="$2" # if false, its a runtime task
-    local projectId="$3"
-    local projectDir="$4"
-    local callback="$5"
+    local projectInst="$3"
+    local projectId="$4"
+    local projectDir="$5"
+    local callback="$6"
     local callbackParams=()
     arrayCopyOfRange args callbackParams 5 "${#args[@]}"
 
@@ -676,7 +673,9 @@ function execFindAllTasks() {
         for task in "$tasksDir/"*.task; do
             if [ -f "$task" ]; then
                 # Found task
-                runFunctionSafe "$callback" "$(basename "${task%*.task}")" "$(readlink -f "$task")" "$isProject" "$projectId" "$projectDir" "${callbackParams[@]}"
+
+                # Run
+                taskSensitiveRunLocalToProject "$isProject" "$projectId" "$(basename "${task%*.task}")" "$projectInst" runFunctionSafe "$callback" "$(basename "${task%*.task}")" "$(readlink -f "$task")" "$isProject" "$projectId" "$projectDir" "${callbackParams[@]}"
             fi
         done
     fi
