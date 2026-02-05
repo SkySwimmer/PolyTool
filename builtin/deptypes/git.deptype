@@ -90,6 +90,13 @@ function git_deptype_restore() {
         if [ "$targetbranch" != "$branchcurrent" ]; then
             # Update required, branch changed
             updateNeeded=true
+
+            # Fetch
+            echo ">>> Fetching upstream..."
+            if ! git fetch; then
+                gitRestoreFail
+                return 1
+            fi
         else
             # Check commit
             remote="$(git remote)"
