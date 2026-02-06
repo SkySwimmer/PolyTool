@@ -60,16 +60,16 @@ function restore_run() {
                 findAndSourceDepTypeFileFromProject "$localProjectId" "$type" 
                 if [ "$baseProjectId" != "$localProjectId" ]; then
                     findAndSourceDepTypeFileFromProject "$baseProjectId" "$type"
-                    local exit=$?
-                    if [ "$exit" != 0 ]; then
-                        return $exit
+                    local exit2=$?
+                    if [ "$exit2" != 0 ]; then
+                        return $exit2
                     fi
                     if [ "$depTypeFound" != "true" ]; then
                         if [ "$rootProjectId" != "$localProjectId" ]; then
                             findAndSourceDepTypeFileFromProject "$rootProjectId" "$type" 
-                            local exit=$?
-                            if [ "$exit" != 0 ]; then
-                                return $exit
+                            local exit3=$?
+                            if [ "$exit3" != 0 ]; then
+                                return $exit3
                             fi
                         fi
                     fi
@@ -139,14 +139,14 @@ function restore_run() {
                 # Call clean
                 if type "${depType}_deptype_cleanEnvironment" &>/dev/null; then
                     runFunctionSafe "${depType}_deptype_cleanEnvironment"
-                    local exit=$?
-                    if [ "$exit" != 0 ]; then
+                    local exit2=$?
+                    if [ "$exit2" != 0 ]; then
                         # Clean type properties
                         depType="undefined"
 
                         # Clean
                         cleanDependencyEnvironment "$path"
-                        return $exit
+                        return $exit2
                     fi
                 fi
 
@@ -169,14 +169,14 @@ function restore_run() {
                 # Call clean
                 if type "${depType}_deptype_cleanEnvironment" &>/dev/null; then
                     runFunctionSafe "${depType}_deptype_cleanEnvironment"
-                    local exit=$?
-                    if [ "$exit" != 0 ]; then
+                    local exit2=$?
+                    if [ "$exit2" != 0 ]; then
                         # Clean type properties
                         depType="undefined"
 
                         # Clean
                         cleanDependencyEnvironment "$path"
-                        return $exit
+                        return $exit2
                     fi
                 fi
 
