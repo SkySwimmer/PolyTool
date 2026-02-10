@@ -129,6 +129,9 @@ function restore_run() {
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
 
+            # Load setting
+            local targetBaseProject="$baseproject"
+            
             # Call verify
             runFunctionSafe "${depType}_deptype_syntaxVerify"
             local exit=$?
@@ -239,12 +242,17 @@ function restore_run() {
                 local baseProjectGroup="$BASEPROJECTGROUP"
                 local baseBuild="$BASEBUILDDIR"
 
-                # Unset, dependencies each are treated as a base
-                BASEPROJECT=undefined
-                BASEPROJECTID=undefined
-                BASEBUILDDIR=undefined
-                BASEPROJECTVERSION=undefined
-                BASEPROJECTGROUP=undefined
+                # Update base project
+                if [ "$targetBaseProject" == "dependency" ]; then
+                    # Unset, dependencies each are treated as a base
+                    BASEPROJECT=undefined
+                    BASEPROJECTID=undefined
+                    BASEBUILDDIR=undefined
+                    BASEPROJECTVERSION=undefined
+                    BASEPROJECTGROUP=undefined
+                fi
+
+                # Setup
                 dependencyProjectPaths=()
                 subProjectPaths=()
                 local currentCwd="$PWD"
