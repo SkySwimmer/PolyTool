@@ -290,6 +290,9 @@ function loadProject() {
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
 
+            # Load setting
+            local targetBaseProject="$baseproject"
+            
             # Check required fields
             if [ "$type" == "undefined" ]; then
                 ANTIRECURSIONLIST=("${callTaskListLast[@]}")
@@ -328,12 +331,17 @@ function loadProject() {
                 local baseProjectGroup="$BASEPROJECTGROUP"
                 local baseBuild="$BASEBUILDDIR"
 
-                # Unset, dependencies each are treated as a base
-                BASEPROJECT=undefined
-                BASEPROJECTID=undefined
-                BASEBUILDDIR=undefined
-                BASEPROJECTVERSION=undefined
-                BASEPROJECTGROUP=undefined
+                # Update base project
+                if [ "$targetBaseProject" == "dependency" ]; then
+                    # Unset, dependencies each are treated as a base
+                    BASEPROJECT=undefined
+                    BASEPROJECTID=undefined
+                    BASEBUILDDIR=undefined
+                    BASEPROJECTVERSION=undefined
+                    BASEPROJECTGROUP=undefined
+                fi
+
+                # Setup
                 local currentCwd="$PWD"
                 cd "$fullpath"
                 
@@ -578,6 +586,9 @@ function loadProjectDependencies() {
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
 
+            # Load setting
+            local targetBaseProject="$baseproject"
+            
             # Check required fields
             if [ "$type" == "undefined" ]; then
                 1>&2 echo "Error: dependency sheet $projectDir/dependencies/$path did not assign an 'type' field!"
@@ -633,12 +644,17 @@ function loadProjectDependencies() {
                 local baseProjectGroup="$BASEPROJECTGROUP"
                 local baseBuild="$BASEBUILDDIR"
 
-                # Unset, dependencies each are treated as a base
-                BASEPROJECT=undefined
-                BASEPROJECTID=undefined
-                BASEBUILDDIR=undefined
-                BASEPROJECTVERSION=undefined
-                BASEPROJECTGROUP=undefined
+                # Update base project
+                if [ "$targetBaseProject" == "dependency" ]; then
+                    # Unset, dependencies each are treated as a base
+                    BASEPROJECT=undefined
+                    BASEPROJECTID=undefined
+                    BASEBUILDDIR=undefined
+                    BASEPROJECTVERSION=undefined
+                    BASEPROJECTGROUP=undefined
+                fi
+
+                # Setup
                 dependencyProjectPaths=()
                 subProjectPaths=()
                 local currentCwd="$PWD"

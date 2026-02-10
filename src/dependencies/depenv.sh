@@ -11,6 +11,7 @@ function setupDependencyEnvironment() {
     name=undefined
     output=undefined
     type=undefined
+    baseproject=dependency
 }
 
 function cleanDependencyEnvironment() {
@@ -24,5 +25,6 @@ function cleanDependencyEnvironment() {
     name=undefined
     output=undefined
     type=undefined
+    baseproject=undefined
 }
 
