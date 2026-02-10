@@ -37,6 +37,14 @@ function loadProject() {
     BUILDDIR="$projectRealDir/build"
     LOCALPROPERTIES=()
 
+    # Check base
+    if [ "$BASEPROJECTID" != "undefined" ]; then
+        # Inherit from base
+        local baseSetId="${projectsSetIds["$BASEPROJECTID"]}"
+        LOCALPROPERTIES=()
+        copyAssociativeArray "locals_$baseSetId" LOCALPROPERTIES
+    fi
+
     # Load polyfile
     preparePolyFileEnvironment
     name="$(basename "$projectRealDir")"
@@ -51,14 +59,6 @@ function loadProject() {
         source "$projectRealDir/polylocal/polyfile.pcb"
     elif [ -f "$projectRealDir/polylocal/Polyfile.pcb" ]; then
         source "$projectRealDir/polylocal/Polyfile.pcb"
-    fi
-
-    # Check base
-    if [ "$BASEPROJECTID" != "undefined" ]; then
-        # Inherit from base
-        local baseSetId="${projectsSetIds["$BASEPROJECTID"]}"
-        LOCALPROPERTIES=()
-        copyAssociativeArray "locals_$baseSetId" LOCALPROPERTIES
     fi
 
     # Load properties
