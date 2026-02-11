@@ -150,7 +150,7 @@ function taskRunnerProjectAllPrepare() {
     fi
 
     # Find task
-    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllPrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllPrepare "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
 
     # Add to task list
@@ -329,7 +329,7 @@ function taskRunnerProjectAllRun() {
     fi
 
     # Find task
-    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllRun "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -489,7 +489,7 @@ function taskRunnerProjectAllFinish() {
     fi
 
     # Find task
-    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksAllFinish "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list

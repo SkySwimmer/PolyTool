@@ -73,7 +73,7 @@ function resolveTaskInProject() {
     # Check task
     if [ "$task" != "restore" ]; then 
         # Find task
-        runLocalToProject "$projectId" resolveTaskFileExec "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "$callback" "${callbackParams[@]}"
+        runLocalToProject "$projectId" resolveTaskFileExec "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "$callback" "${callbackParams[@]}"
         local exit=$?
         
         # Handle exit
@@ -617,7 +617,7 @@ function findAllTasksProject() {
     done
 
     # Find task
-    execFindAllTasks "$projectDir/tasks" true "$projectId" "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
+    execFindAllTasks "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit

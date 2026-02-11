@@ -110,7 +110,7 @@ function taskRunnerProjectSingle() {
     # Check task
     if [ "$task" != "restore" ]; then 
         # Find task
-        taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksSingle "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+        taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksSingle "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
         local exit=$?
 
         # Add to task list
