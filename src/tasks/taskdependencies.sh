@@ -303,9 +303,9 @@ function environmentPrepareProjectTasks() {
     #
     
     # Initialize project
-    findAllTasks "$projectId" "$projectDir" onPrepareTaskFound_Init PROJECTMEMORYREFSCANNER_INIT
-    findAllTasks "$projectId" "$projectDir" onPrepareTaskFound_Populate PROJECTMEMORYREFSCANNER_POPULATE
-    findAllTasks "$projectId" "$projectDir" onPrepareTaskFound_Scanner PROJECTMEMORYREFSCANNER_SCANNER
+    findAllTasks "$projectId" "$projectDir" onPrepareTaskFound_Init PROJECTMEMORYREFSCANNER_INIT "$task"
+    findAllTasks "$projectId" "$projectDir" onPrepareTaskFound_Populate PROJECTMEMORYREFSCANNER_POPULATE "$task"
+    findAllTasks "$projectId" "$projectDir" onPrepareTaskFound_Scanner PROJECTMEMORYREFSCANNER_SCANNER "$task"
 }
 
 function onPrepareTaskFound_Init() {
@@ -314,6 +314,7 @@ function onPrepareTaskFound_Init() {
     local isProject="$3" # if false, its a runtime task
     local projectId="$4"
     local projectDir="$5"
+    local baseTask="$6"
 
     # Check
     local taskKey="$projectId-$task"
@@ -371,6 +372,18 @@ function onPrepareTaskFound_Init() {
                 exit $exit
             fi
         done
+        if [ "$baseTask" != "restore" ]; then
+            for depend in "${loadOntoList[@]}"; do
+                local taskResolveFoundLast="$taskResolveFound"
+                resolveTask "$depend"
+                local resolveResult="$taskResolveFound"
+                taskResolveFound="$taskResolveFoundLast"
+                if [ "$resolveResult" != true ]; then
+                    1>&2 echo "Error: failed to define task '$task' of project $projectId: dependency task not recognized: $depend"
+                    exit $exit
+                fi
+            done
+        fi
     fi
 
     # Create dependency lists
@@ -580,6 +593,12 @@ function findAllTasksProject() {
     local callbackParams=()
     arrayCopyOfRange args callbackParams 4 "${#args[@]}"
 
+    # Check project list
+    if arrayContains "$projectDir" "$projectListToUse"; then
+        return
+    fi
+    eval "$projectListToUse"'+=("$projectDir")'
+
     # Get list ID
     local setId="${projectsSetIds["$projectId"]}"
 
@@ -642,8 +661,9 @@ function execFindAllTasks() {
     local projectId="$4"
     local projectDir="$5"
     local callback="$6"
+    local projectListToUse="$7"
     local callbackParams=()
-    arrayCopyOfRange args callbackParams 5 "${#args[@]}"
+    arrayCopyOfRange args callbackParams 7 "${#args[@]}"
 
     # Find task
     if [ -d "$tasksDir" ]; then
