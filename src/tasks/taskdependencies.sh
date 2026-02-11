@@ -1,10 +1,4 @@
 #!/bin/bash
-declare PROJECTMEMORYREFSCANNER_INIT=()
-declare TASKMEMORYREFSCANNER_INIT=()
-declare PROJECTMEMORYREFSCANNER_POPULATE=()
-declare TASKMEMORYREFSCANNER_POPULATE=()
-declare PROJECTMEMORYREFSCANNER_SCANNER=()
-declare TASKMEMORYREFSCANNER_SCANNER=()
 
 function resolveTask() {
     local args=("$@")
@@ -377,16 +371,6 @@ function onPrepareTaskFound_Init() {
                 exit $exit
             fi
         done
-        for depend in "${loadOntoList[@]}"; do
-            local taskResolveFoundLast="$taskResolveFound"
-            resolveTask "$depend"
-            local resolveResult="$taskResolveFound"
-            taskResolveFound="$taskResolveFoundLast"
-            if [ "$resolveResult" != true ]; then
-                1>&2 echo "Error: failed to define task '$task' of project $projectId: dependency task not recognized: $depend"
-                exit $exit
-            fi
-        done
     fi
 
     # Create dependency lists
@@ -464,11 +448,6 @@ function onPrepareTaskFound_Populate() {
                 runLocalToProject "$projectId" resolveTask "$id" resolveTaskAddToTargetCallback "$projectId" "$task" requiresTask "$targetOrderList"
             else
                 resolveTask "$id" resolveTaskAddToTargetCallback "$projectId" "$task" requiresTask "$targetOrderList"
-            fi
-            if [ "$taskResolveFound" != "true" ]; then
-                # Error
-                1>&2 echo "Error: could not resolve dependency task \"$id\" for task \"$task\": task not recognized"
-                exit 1
             fi
             eval 'dependsList=("${'"requiresTask_$setId"'[@]}")'
             eval 'loadOntoList=("${'"addTo_$setId"'[@]}")'
@@ -648,8 +627,6 @@ function findAllTasksProject() {
         findAllTasksProject "$subProjectId" "$subProjectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
         local exit=$?
         if [ "$exit" != 0 ]; then
-            # Revert list
-            ANTIRECURSIONLIST=("${callTaskListLast[@]}")
             return $exit
         fi
     done
