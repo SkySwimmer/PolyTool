@@ -290,10 +290,10 @@ function restore_run() {
                         ANTIRECURSIONLIST=()
                         ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
                         ANTIRECURSIONLIST+=("$fullpath")
-                        environmentPrepareProjectTasks "restore" "$id" "$LOCALPROJECT"
-                        tasksDependenciesExecPre "restore" false "$id" "$LOCALPROJECT"
-                        restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
-                        tasksDependenciesExecPost "restore" false "$id" "$LOCALPROJECT"
+                        runLocalToProject "$loadedId" environmentPrepareProjectTasks "restore" "$loadedId" "$LOCALPROJECT"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPre "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPost "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                         RESTORERECURSING="$recLAST"
                         ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
                     fi
@@ -412,10 +412,10 @@ function restore_run() {
                     ANTIRECURSIONLIST=()
                     ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
                     ANTIRECURSIONLIST+=("$fullpath")
-                    environmentPrepareProjectTasks "restore" "$id" "$LOCALPROJECT"
-                    tasksDependenciesExecPre "restore" false "$id" "$LOCALPROJECT"
-                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
-                    tasksDependenciesExecPost "restore" false "$id" "$LOCALPROJECT"
+                    runLocalToProject "$loadedId" environmentPrepareProjectTasks "restore" "$loadedId" "$LOCALPROJECT"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPre "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPost "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     RESTORERECURSING="$recLAST"
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
                 fi
@@ -517,10 +517,10 @@ function restore_run() {
                     ANTIRECURSIONLIST=()
                     ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
                     ANTIRECURSIONLIST+=("$fullpath")
-                    environmentPrepareProjectTasks "restore" "$id" "$LOCALPROJECT"
-                    tasksDependenciesExecPre "restore" false "$id" "$LOCALPROJECT"
+                    runLocalToProject "$loadedId" environmentPrepareProjectTasks "restore" "$loadedId" "$LOCALPROJECT"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPre "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
-                    tasksDependenciesExecPost "restore" false "$id" "$LOCALPROJECT"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPost "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     RESTORERECURSING="$recLAST"
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
                 fi
@@ -579,6 +579,12 @@ function restore_run() {
         projectsBaseProjectIds=()
         setIds=()
         LOCALPROPERTIES=()
+        PROJECTMEMORYREFSCANNER_INIT=()
+        TASKMEMORYREFSCANNER_INIT=()
+        PROJECTMEMORYREFSCANNER_POPULATE=()
+        TASKMEMORYREFSCANNER_POPULATE=()
+        PROJECTMEMORYREFSCANNER_SCANNER=()
+        TASKMEMORYREFSCANNER_SCANNER=()
 
         # Load projects
         if ! loadProject "<root>" "$PWD" "<root project>" "" false false false ">>> " ; then
@@ -609,6 +615,9 @@ function restore_run() {
             exit 1
         fi
         cd "$lPWD"
+        echo ">> Tasks will be reloaded, this can take a bit..."
+        runLocalToProject "$ROOTPROJECTID" environmentPrepareProjectTasks "restore" "$ROOTPROJECTID" "$ROOTPROJECT"
+        echo ">> Restore finished."
     fi
 }
 
