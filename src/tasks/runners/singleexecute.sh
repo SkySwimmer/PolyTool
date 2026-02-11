@@ -360,7 +360,7 @@ function execTasksSingle() {
             source "$tasksDir/$task.task" || taskLoadError "$task.task"
 
             # Check local
-            local localTaskFile="$LOCALPROJECT/polylocal/tasks/$task.task"
+            local localTaskFile="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/tasks/$task.task"
             if [ -f "$localTaskFile" ]; then
                 # Local overload
                 source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"
