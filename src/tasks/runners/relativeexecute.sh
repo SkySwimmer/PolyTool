@@ -126,7 +126,7 @@ function taskRunnerProjectRelativePrepare() {
     done
 
     # Find task
-    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativePrepare "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativePrepare "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
 
     # Add to task list
@@ -306,7 +306,7 @@ function taskRunnerProjectRelativeRun() {
     done
 
     # Find task
-    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativeRun "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativeRun "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -466,7 +466,7 @@ function taskRunnerProjectRelativeFinish() {
     done
 
     # Find task
-    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativeFinish "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+    taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksRelativeFinish "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         # Revert list
@@ -619,7 +619,7 @@ function execTasksRelativePrepare() {
             source "$tasksDir/$task.task" || taskLoadError "$task.task"
 
             # Check local
-            local localTaskFile="$LOCALPROJECT/polylocal/tasks/$task.task"
+            local localTaskFile="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/tasks/$task.task"
             if [ -f "$localTaskFile" ]; then
                 # Local overload
                 source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"
@@ -820,7 +820,7 @@ function execTasksRelativeFinish() {
             source "$tasksDir/$task.task" || taskLoadError "$task.task"
 
             # Check local
-            local localTaskFile="$LOCALPROJECT/polylocal/tasks/$task.task"
+            local localTaskFile="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/tasks/$task.task"
             if [ -f "$localTaskFile" ]; then
                 # Local overload
                 source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"

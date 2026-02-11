@@ -29,6 +29,9 @@ declare -A projectsByDir=()
 declare -A projectsByGroupAndId=()
 declare -A projectsSetIds=()
 declare -A projectsBaseProjectIds=()
+declare -A projectsTasksFolders=()
+declare -A projectsDependenciesFolders=()
+declare -A projectsPolyLocalFolders=()
 declare setIds=()
 
 # Properties

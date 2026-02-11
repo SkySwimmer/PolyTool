@@ -54,11 +54,16 @@ function loadProject() {
         source "$projectRealDir/Polyfile.pcb"
     fi
 
+    # Load paths
+    local pathTasks="$(readlink -f "$tasksdir")"
+    local pathDependencies="$(readlink -f "$dependenciesdir")"
+    local pathPolyLocal="$(readlink -f "$localoverloadsdir")"
+
     # Overload local
-    if [ -f "$projectRealDir/polylocal/polyfile.pcb" ]; then
-        source "$projectRealDir/polylocal/polyfile.pcb"
-    elif [ -f "$projectRealDir/polylocal/Polyfile.pcb" ]; then
-        source "$projectRealDir/polylocal/Polyfile.pcb"
+    if [ -f "$pathPolyLocal/polyfile.pcb" ]; then
+        source "$pathPolyLocal/polyfile.pcb"
+    elif [ -f "$pathPolyLocal/Polyfile.pcb" ]; then
+        source "$pathPolyLocal/Polyfile.pcb"
     fi
 
     # Load properties
@@ -221,6 +226,15 @@ function loadProject() {
     projectsSetIds+=(
         ["$id"]="$setId"
     )
+    projectsTasksFolders+=(
+        ["$id"]="$pathTasks"
+    )
+    projectsDependenciesFolders+=(
+        ["$id"]="$pathDependencies"
+    )
+    projectsPolyLocalFolders+=(
+        ["$id"]="$pathPolyLocal"
+    )
 
     # First load defined dependencies
     for depOutput in "${dependencyProjectPaths[@]}"; do
@@ -277,7 +291,7 @@ function loadProject() {
     done
 
     # Load dependencies that are present
-    for path in "$projectRealDir/dependencies/"*.dep; do
+    for path in "$pathDependencies/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
             # Load dependency sheet
@@ -285,7 +299,7 @@ function loadProject() {
             source "$path" || loadDependencyError "$(basename "$path")"
 
             # Load overload
-            local localOverload="$projectRealDir/polylocal/dependencies/$(basename "$path")"
+            local localOverload="$pathPolyLocal/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
@@ -385,10 +399,17 @@ function loadProject() {
     elif [ -f "$projectRealDir/Polyfile.pcb" ]; then
         source "$projectRealDir/Polyfile.pcb"
     fi
-    if [ -f "$projectRealDir/polylocal/polyfile.pcb" ]; then
-        source "$projectRealDir/polylocal/polyfile.pcb"
-    elif [ -f "$projectRealDir/polylocal/Polyfile.pcb" ]; then
-        source "$projectRealDir/polylocal/Polyfile.pcb"
+
+    # Load paths
+    local pathTasks="$(readlink -f "$tasksdir")"
+    local pathDependencies="$(readlink -f "$dependenciesdir")"
+    local pathPolyLocal="$(readlink -f "$localoverloadsdir")"
+
+    # Overload local
+    if [ -f "$pathPolyLocal/polyfile.pcb" ]; then
+        source "$pathPolyLocal/polyfile.pcb"
+    elif [ -f "$pathPolyLocal/Polyfile.pcb" ]; then
+        source "$pathPolyLocal/Polyfile.pcb"
     fi
     if [ "$name" != "$(basename "$projectRealDir")" ]; then
         projectName="$name"
@@ -451,10 +472,17 @@ function loadProject() {
     elif [ -f "$projectRealDir/Polyfile.pcb" ]; then
         source "$projectRealDir/Polyfile.pcb"
     fi
-    if [ -f "$projectRealDir/polylocal/polyfile.pcb" ]; then
-        source "$projectRealDir/polylocal/polyfile.pcb"
-    elif [ -f "$projectRealDir/polylocal/Polyfile.pcb" ]; then
-        source "$projectRealDir/polylocal/Polyfile.pcb"
+
+    # Load paths
+    local pathTasks="$(readlink -f "$tasksdir")"
+    local pathDependencies="$(readlink -f "$dependenciesdir")"
+    local pathPolyLocal="$(readlink -f "$localoverloadsdir")"
+
+    # Overload local
+    if [ -f "$pathPolyLocal/polyfile.pcb" ]; then
+        source "$pathPolyLocal/polyfile.pcb"
+    elif [ -f "$pathPolyLocal/Polyfile.pcb" ]; then
+        source "$pathPolyLocal/Polyfile.pcb"
     fi
     if [ "$name" != "$(basename "$projectRealDir")" ]; then
         projectName="$name"
@@ -567,7 +595,7 @@ function loadProjectDependencies() {
     done
 
     # Load dependencies
-    for path in "$LOCALPROJECT/dependencies/"*.dep; do
+    for path in "${projectsDependenciesFolders["$LOCALPROJECTID"]}/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
             # Load dependency sheet
@@ -581,7 +609,7 @@ function loadProjectDependencies() {
             source "$path" || loadDependencyError "$depFilePretty"
 
             # Load overload
-            local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
+            local localOverload="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
@@ -707,6 +735,9 @@ function preparePolyFileEnvironment() {
     version="undefined"
     group="undefined"
     name="undefined"
+    tasksdir="tasks"
+    dependenciesdir="dependencies"
+    localoverloadsdir="polylocal"
     dependencyProjectPaths=()
     subProjectPaths=()
 }
