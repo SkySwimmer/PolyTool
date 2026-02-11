@@ -110,7 +110,7 @@ function taskRunnerProjectSingle() {
     # Check task
     if [ "$task" != "restore" ]; then 
         # Find task
-        taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksSingle "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "${runnerArgs[@]}"
+        taskSensitiveRunLocalToProject true "$projectId" "$task" "$projectId" execTasksSingle "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "${runnerArgs[@]}"
         local exit=$?
 
         # Add to task list
@@ -360,7 +360,7 @@ function execTasksSingle() {
             source "$tasksDir/$task.task" || taskLoadError "$task.task"
 
             # Check local
-            local localTaskFile="$LOCALPROJECT/polylocal/tasks/$task.task"
+            local localTaskFile="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/tasks/$task.task"
             if [ -f "$localTaskFile" ]; then
                 # Local overload
                 source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"

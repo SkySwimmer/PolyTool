@@ -11,7 +11,7 @@ function restore_run() {
     local dirFriendly="${projectsDirFriendly["$LOCALPROJECTID"]}"
 
     # Restore dependency sheets
-    for path in "$LOCALPROJECT/dependencies/"*.dep; do
+    for path in "${projectsDependenciesFolders["$LOCALPROJECTID"]}/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
             # Load dependency sheet
@@ -25,7 +25,7 @@ function restore_run() {
             source "$path" || loadDependencyError "$depFilePretty"
 
             # Load overload
-            local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
+            local localOverload="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
@@ -124,7 +124,7 @@ function restore_run() {
             source "$path" || loadDependencyError "$depFilePretty"
 
             # Load overload
-            local localOverload="$LOCALPROJECT/polylocal/dependencies/$(basename "$path")"
+            local localOverload="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
@@ -762,7 +762,7 @@ function execFindAndSourceDepTypeFile() {
             ANTIRECURSIONLIST+=("$depTypesDir/$depTypeName.deptype")
             
             local depTypeFile="$depTypesDir/$depTypeName.deptype"
-            local localDepTypeFile="$LOCALPROJECT/polylocal/deptypes/$depTypeName.deptype"
+            local localDepTypeFile="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/deptypes/$depTypeName.deptype"
             source "$depTypeFile" || depTypeLoadError "$depTypeName.deptype"
             if [ -f "$localDepTypeFile" ]; then
                 source "$localDepTypeFile" || depTypeLoadError "${projectsDirFriendly["$LOCALPROJECTID"]}/polylocal/deptypes/$depTypeName.deptype"

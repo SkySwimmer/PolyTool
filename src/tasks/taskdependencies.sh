@@ -73,7 +73,7 @@ function resolveTaskInProject() {
     # Check task
     if [ "$task" != "restore" ]; then 
         # Find task
-        runLocalToProject "$projectId" resolveTaskFileExec "$task" "$projectDir/tasks" true "$projectId" "$projectDir" "$callback" "${callbackParams[@]}"
+        runLocalToProject "$projectId" resolveTaskFileExec "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "$callback" "${callbackParams[@]}"
         local exit=$?
         
         # Handle exit
@@ -332,7 +332,7 @@ function onPrepareTaskFound_Init() {
     source "$taskFile" || taskLoadError "$task.task"
 
     # Check local
-    local localTaskFile="$LOCALPROJECT/polylocal/tasks/$task.task"
+    local localTaskFile="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/tasks/$task.task"
     if [ -f "$localTaskFile" ]; then
         # Local overload
         source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"
@@ -617,7 +617,7 @@ function findAllTasksProject() {
     done
 
     # Find task
-    execFindAllTasks "$projectDir/tasks" true "$projectId" "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
+    execFindAllTasks "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
         return $exit
