@@ -397,9 +397,9 @@ function execTasksSingle() {
 
             # Show log
             if [ "$isProject" == true ]; then
-                echo "> $projectId:$task : $LOCALPROJECTID : RUN"
+                echo "> $LOCALPROJECTID : $projectId:$task -> RUN"
             else
-                echo "> $task : $LOCALPROJECTID : RUN"
+                echo "> $LOCALPROJECTID : $task -> RUN"
             fi
 
             # Call run
