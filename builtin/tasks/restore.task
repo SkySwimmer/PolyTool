@@ -11,7 +11,7 @@ function restore_run() {
     local dirFriendly="${projectsDirFriendly["$LOCALPROJECTID"]}"
 
     # Restore dependency sheets
-    for path in "$LOCALPROJECT/dependencies/"*.dep; do
+    for path in "${projectsDependenciesFolders["$LOCALPROJECTID"]}/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
             # Load dependency sheet

@@ -291,7 +291,7 @@ function loadProject() {
     done
 
     # Load dependencies that are present
-    for path in "$projectRealDir/dependencies/"*.dep; do
+    for path in "$pathDependencies/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
             # Load dependency sheet
@@ -595,7 +595,7 @@ function loadProjectDependencies() {
     done
 
     # Load dependencies
-    for path in "$LOCALPROJECT/dependencies/"*.dep; do
+    for path in "${projectsDependenciesFolders["$LOCALPROJECTID"]}/"*.dep; do
         # Load dependency project if polyfile is present
         if [ -f "$path" ]; then
             # Load dependency sheet
@@ -609,7 +609,7 @@ function loadProjectDependencies() {
             source "$path" || loadDependencyError "$depFilePretty"
 
             # Load overload
-            local localOverload="$pathPolyLocal/dependencies/$(basename "$path")"
+            local localOverload="${projectsPolyLocalFolders["$LOCALPROJECTID"]}/dependencies/$(basename "$path")"
             if [ -f "$localOverload" ]; then 
                 source "$localOverload" || loadDependencyError "<local>/polylocal/dependencies/$(basename "$path")"
             fi
