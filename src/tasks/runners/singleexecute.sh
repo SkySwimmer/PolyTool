@@ -342,9 +342,9 @@ function execTasksSingle() {
             
             # Show log
             if [ "$isProject" == true ]; then
-                echo "> $projectId:$task : $LOCALPROJECTID : PREPARE"
+                echo "> $LOCALPROJECTID : $projectId:$task -> PREPARE"
             else
-                echo "> $task : $LOCALPROJECTID : PREPARE"
+                echo "> $LOCALPROJECTID : $task -> PREPARE"
             fi
 
             # Get last env
