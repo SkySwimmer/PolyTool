@@ -615,6 +615,19 @@ function execTasksAllPrepare() {
             fi
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
 
+            # Get last env
+            declare -A taskEnvLast=()
+            copyAssociativeArray PROPERTIES taskEnvLast
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
+            PROPERTIES=()
+            PARAMETERS=()
+
+            # Populate properties
+            copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+            copyAssociativeArray LOCALPROPERTIES PROPERTIES
+            copyAssociativeArray taskEnvLast PROPERTIES
+
             # Found task
             # Run pre-tasks
             tasksDependenciesExecPre "$task" "$isProject" "$projectId" "$projectDir" || return 1
@@ -625,14 +638,6 @@ function execTasksAllPrepare() {
             else
                 echo "> $LOCALPROJECTID : $task -> PREPARE"
             fi
-
-            # Get last env
-            declare -A taskEnvLast=()
-            copyAssociativeArray PROPERTIES taskEnvLast
-            declare -A parametersEnvLast=()
-            copyAssociativeArray PARAMETERS parametersEnvLast
-            PROPERTIES=()
-            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -739,13 +744,6 @@ function execTasksAllRun() {
             fi
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
-            # Show log
-            if [ "$isProject" == true ]; then
-                echo "> $LOCALPROJECTID : $projectId:$task -> RUN"
-            else
-                echo "> $LOCALPROJECTID : $task -> RUN"
-            fi
-
             # Get last env
             declare -A taskEnvLast=()
             copyAssociativeArray PROPERTIES taskEnvLast
@@ -753,6 +751,18 @@ function execTasksAllRun() {
             copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
             PARAMETERS=()
+
+            # Populate properties
+            copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+            copyAssociativeArray LOCALPROPERTIES PROPERTIES
+            copyAssociativeArray taskEnvLast PROPERTIES
+
+            # Show log
+            if [ "$isProject" == true ]; then
+                echo "> $LOCALPROJECTID : $projectId:$task -> RUN"
+            else
+                echo "> $LOCALPROJECTID : $task -> RUN"
+            fi
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -835,6 +845,11 @@ function execTasksAllFinish() {
             copyAssociativeArray PARAMETERS parametersEnvLast
             PROPERTIES=()
             PARAMETERS=()
+
+            # Populate properties
+            copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+            copyAssociativeArray LOCALPROPERTIES PROPERTIES
+            copyAssociativeArray taskEnvLast PROPERTIES
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"

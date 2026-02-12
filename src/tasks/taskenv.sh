@@ -344,10 +344,6 @@ function setupTaskEnvironment() {
     local runnerArgs=()
     arrayCopyOfRange args runnerArgs 5 "${#args[@]}"
 
-    # Apply global and local properties to properties
-    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
-    copyAssociativeArray LOCALPROPERTIES PROPERTIES
-
     # Process parameters
     local skip=0
     local i=0
@@ -539,7 +535,7 @@ function setupTaskEnvironment() {
     done
 
     # Read arguments
-    # Taks property assignment
+    # Task property assignment
     local skip=0
     local i=0
     local len="${#runnerArgs[@]}"
