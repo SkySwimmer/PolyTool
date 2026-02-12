@@ -29,6 +29,8 @@ declare -A projectsByDir=()
 declare -A projectsByGroupAndId=()
 declare -A projectsSetIds=()
 declare -A projectsBaseProjectIds=()
+declare -A projectsBaseProjectBuildDirs=()
+declare -A projectsBuildDirs=()
 declare -A projectsTasksFolders=()
 declare -A projectsDependenciesFolders=()
 declare -A projectsPolyLocalFolders=()
@@ -37,7 +39,7 @@ declare setIds=()
 # Properties
 declare -A GLOBALPROPERTIES=() # Across projects
 declare -A LOCALPROPERTIES=() # Specific to projects
-declare -A PROPERTIES=() # Specific to tasks (inherits LOCALPROPERTIES)
+declare -A PROPERTIES=() # Specific to tasks (inherits LOCALPROPERTIES and inherited by child tasks, but do not exist across other tasks)
 declare -A PARAMETERS=() # Specific to tasks, parameters are arguments passed to tasks
 
 # Functionality

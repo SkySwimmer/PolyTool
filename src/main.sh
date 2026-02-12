@@ -109,7 +109,7 @@ function main() {
     done
 
     # Find tasks to run
-    # Syntax: task [arguments] another-task [arguments] ...
+    # Syntax: [arguments for runtime] task [arguments] another-task [arguments] ...
     local taskParams=()
     local lastTask=""
     local taskEnd=false
@@ -128,7 +128,7 @@ function main() {
 
         # Handle globals
         # Done ruring argument handling so that global assignment arguments are relative to each task
-        # Locals cannot be done here due to how they are stored per project, they are handled by tasks
+        # Locals cannot be done here due to how they are stored per project, loading those is handled by tasks
         if [[ "$arg" == "--"* ]]; then 
             # Substring it
             local key="${arg#*--}"
