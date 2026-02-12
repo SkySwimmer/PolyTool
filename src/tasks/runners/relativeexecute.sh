@@ -18,6 +18,16 @@ function relativeExecuteRunner() {
         return $?
     fi
 
+    # Get last env
+    declare -A taskEnvLast=()
+    copyAssociativeArray PROPERTIES taskEnvLast
+    PROPERTIES=()
+    
+    # Populate properties
+    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+    copyAssociativeArray taskEnvLast PROPERTIES
+
     # Get project properties
     local localProjectDir="$LOCALPROJECT"
     local baseProjectDir="$BASEPROJECT"
@@ -31,12 +41,16 @@ function relativeExecuteRunner() {
     taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
         return $exit
     fi
 
     # Check found
     if [ "$taskFound" != "true" ]; then
         # No tasks found
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
         return 1
     fi
 
@@ -44,6 +58,8 @@ function relativeExecuteRunner() {
     taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
         return $exit
     fi
 
@@ -51,10 +67,14 @@ function relativeExecuteRunner() {
     taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
     local exit=$?
     if [ "$exit" != 0 ]; then
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
         return $exit
     fi
 
     # Success
+    PROPERTIES=()
+    copyAssociativeArray taskEnvLast PROPERTIES
     return 0
 }
 
@@ -595,6 +615,11 @@ function execTasksRelativePrepare() {
             fi
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
+            # Get last env
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
+            PARAMETERS=()
+
             # Found task
             # Run pre-tasks
             tasksDependenciesExecPre "$task" "$isProject" "$projectId" "$projectDir" || return 1
@@ -605,14 +630,6 @@ function execTasksRelativePrepare() {
             else
                 echo "> $LOCALPROJECTID : $task -> PREPARE"
             fi
-
-            # Get last env
-            declare -A taskEnvLast=()
-            copyAssociativeArray PROPERTIES taskEnvLast
-            declare -A parametersEnvLast=()
-            copyAssociativeArray PARAMETERS parametersEnvLast
-            PROPERTIES=()
-            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -632,8 +649,6 @@ function execTasksRelativePrepare() {
                 applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=()
-                    copyAssociativeArray taskEnvLast PROPERTIES
                     PARAMETERS=()
                     copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -644,8 +659,6 @@ function execTasksRelativePrepare() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=()
-                    copyAssociativeArray taskEnvLast PROPERTIES
                     PARAMETERS=()
                     copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -658,8 +671,6 @@ function execTasksRelativePrepare() {
                 runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=()
-                    copyAssociativeArray taskEnvLast PROPERTIES
                     PARAMETERS=()
                     copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -668,8 +679,6 @@ function execTasksRelativePrepare() {
             fi
 
             # Clean environment
-            PROPERTIES=()
-            copyAssociativeArray taskEnvLast PROPERTIES
             PARAMETERS=()
             copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
@@ -718,20 +727,17 @@ function execTasksRelativeRun() {
             fi
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
+            # Get last env
+            declare -A parametersEnvLast=()
+            copyAssociativeArray PARAMETERS parametersEnvLast
+            PARAMETERS=()
+
             # Show log
             if [ "$isProject" == true ]; then
                 echo "> $LOCALPROJECTID : $projectId:$task -> RUN"
             else
                 echo "> $LOCALPROJECTID : $task -> RUN"
             fi
-
-            # Get last env
-            declare -A taskEnvLast=()
-            copyAssociativeArray PROPERTIES taskEnvLast
-            declare -A parametersEnvLast=()
-            copyAssociativeArray PARAMETERS parametersEnvLast
-            PROPERTIES=()
-            PARAMETERS=()
 
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -748,8 +754,6 @@ function execTasksRelativeRun() {
             runFunctionSafe "${task}_run" "${runnerArgs[@]}"
             local exit=$?
             if [ "$exit" != 0 ]; then
-                PROPERTIES=()
-                copyAssociativeArray taskEnvLast PROPERTIES
                 PARAMETERS=()
                 copyAssociativeArray parametersEnvLast PARAMETERS
                 cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -757,8 +761,6 @@ function execTasksRelativeRun() {
             fi
 
             # Clean environment
-            PROPERTIES=()
-            copyAssociativeArray taskEnvLast PROPERTIES
             PARAMETERS=()
             copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"
@@ -808,11 +810,8 @@ function execTasksRelativeFinish() {
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
             # Get last env
-            declare -A taskEnvLast=()
-            copyAssociativeArray PROPERTIES taskEnvLast
             declare -A parametersEnvLast=()
             copyAssociativeArray PARAMETERS parametersEnvLast
-            PROPERTIES=()
             PARAMETERS=()
 
             # Load task
@@ -838,8 +837,6 @@ function execTasksRelativeFinish() {
                 runFunctionSafe "${task}_finish" "${runnerArgs[@]}"
                 local exit=$?
                 if [ "$exit" != 0 ]; then
-                    PROPERTIES=()
-                    copyAssociativeArray taskEnvLast PROPERTIES
                     PARAMETERS=()
                     copyAssociativeArray parametersEnvLast PARAMETERS
                     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
@@ -848,8 +845,6 @@ function execTasksRelativeFinish() {
             fi
 
             # Clean environment
-            PROPERTIES=()
-            copyAssociativeArray taskEnvLast PROPERTIES
             PARAMETERS=()
             copyAssociativeArray parametersEnvLast PARAMETERS
             unset -f "${task}_prepare"

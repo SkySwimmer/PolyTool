@@ -327,6 +327,16 @@ function onPrepareTaskFound_Init() {
     TASKMEMORYREFSCANNER_INIT+=("$taskKey")
     TASKMEMORYREFSCANNER_KEYS+=(["$taskFile-$LOCALPROJECTID"]="$taskKey")
     
+    # Get last env
+    declare -A taskEnvLast=()
+    copyAssociativeArray PROPERTIES taskEnvLast
+    PROPERTIES=()
+
+    # Populate properties
+    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+    copyAssociativeArray taskEnvLast PROPERTIES
+
     # Load task
     setupTaskEnvironment "$task" "$taskFile" "$isProject" "$projectId" "$projectDir"
     source "$taskFile" || taskLoadError "$task.task"
@@ -355,6 +365,8 @@ function onPrepareTaskFound_Init() {
         applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
         cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
         if [ "$exit" != 0 ]; then
+            PROPERTIES=()
+            copyAssociativeArray taskEnvLast PROPERTIES
             1>&2 echo Error: task discovery failed due to a failed define call, please check the log for errors
             exit $exit
         fi
@@ -368,6 +380,8 @@ function onPrepareTaskFound_Init() {
             local resolveResult="$taskResolveFound"
             taskResolveFound="$taskResolveFoundLast"
             if [ "$resolveResult" != true ]; then
+                PROPERTIES=()
+                copyAssociativeArray taskEnvLast PROPERTIES
                 1>&2 echo "Error: failed to define task '$task' of project $projectId: dependency task not recognized: $depend"
                 exit $exit
             fi
@@ -379,6 +393,8 @@ function onPrepareTaskFound_Init() {
                 local resolveResult="$taskResolveFound"
                 taskResolveFound="$taskResolveFoundLast"
                 if [ "$resolveResult" != true ]; then
+                    PROPERTIES=()
+                    copyAssociativeArray taskEnvLast PROPERTIES
                     1>&2 echo "Error: failed to define task '$task' of project $projectId: dependency task not recognized: $depend"
                     exit $exit
                 fi
@@ -403,6 +419,9 @@ function onPrepareTaskFound_Init() {
     loadBeforeList=()
 
     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
+
+    PROPERTIES=()
+    copyAssociativeArray taskEnvLast PROPERTIES
 }
 
 function onPrepareTaskFound_Populate() {
