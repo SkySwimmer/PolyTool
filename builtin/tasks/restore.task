@@ -441,6 +441,7 @@ function restore_run() {
     done
 
     # Then restore subprojects, which might be created only after restoring
+    loadProject "$LOCALPROJECT" "$LOCALPROJECT" "$(basename "$LOCALPROJECT")" "" false false false
     for subProjectPath in "${subProjectPaths[@]}"; do
         if [ "$subProjectPath" == "" ]; then 
             continue
