@@ -151,10 +151,12 @@ function git_deptype_restore() {
                     gitRestoreFail
                     return 1
                 fi
-                echo ">>> Pulling upstream..."
-                git pull || exit 1  
-                currentcommit="$(git rev-parse HEAD)"
-                updateApplied=true
+                if [ "$tag" == "undefined" ]; then
+                    echo ">>> Pulling upstream..."
+                    git pull || exit 1  
+                    currentcommit="$(git rev-parse HEAD)"
+                    updateApplied=true
+                fi
             fi
 
             # Pull if needed
