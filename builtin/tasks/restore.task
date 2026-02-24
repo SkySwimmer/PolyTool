@@ -1,9 +1,22 @@
 #!/bin/bash
 
 function restore_define() {
+    # Settings
     runRelativeToCallerProject=true
     allowMultiExecute=false
     runtimeTaskShared=true
+
+    # Syntax
+    taskSyntaxHint=""
+    taskDescriptionShort="Restores the project"
+    taskDescriptionFull="Restores the local project and all its dependencies
+To control which project to restore, use \`--project \"<id>\"\` with this task.
+
+This task goes through all dependencies of the local project,
+downloading and installing the dependency into the target folders relative to the local project.
+
+View PolyTool documentation on the PolyTool git repository for more information on dependencies.
+The documentation should also be available locally under \`.polytool/docs\` if you are using the wrapper."
 }
 
 function restore_run() {
@@ -291,9 +304,13 @@ function restore_run() {
                         ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
                         ANTIRECURSIONLIST+=("$fullpath")
                         runLocalToProject "$loadedId" environmentPrepareProjectTasks "restore" "$loadedId" "$LOCALPROJECT"
-                        runLocalToProject "$loadedId" tasksDependenciesExecPre "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPrePrepare "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPreRun "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPreFinish "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                         restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
-                        runLocalToProject "$loadedId" tasksDependenciesExecPost "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPostPrepare "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPostRun "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                        runLocalToProject "$loadedId" tasksDependenciesExecPostFinish "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                         RESTORERECURSING="$recLAST"
                         ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
                     fi
@@ -413,9 +430,13 @@ function restore_run() {
                     ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
                     ANTIRECURSIONLIST+=("$fullpath")
                     runLocalToProject "$loadedId" environmentPrepareProjectTasks "restore" "$loadedId" "$LOCALPROJECT"
-                    runLocalToProject "$loadedId" tasksDependenciesExecPre "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPrePrepare "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPreRun "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPreFinish "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
-                    runLocalToProject "$loadedId" tasksDependenciesExecPost "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPostPrepare "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPostRun "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPostFinish "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g" | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     RESTORERECURSING="$recLAST"
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
                 fi
@@ -519,9 +540,13 @@ function restore_run() {
                     ANTIRECURSIONLIST+=("${callTaskListLast[@]}")
                     ANTIRECURSIONLIST+=("$fullpath")
                     runLocalToProject "$loadedId" environmentPrepareProjectTasks "restore" "$loadedId" "$LOCALPROJECT"
-                    runLocalToProject "$loadedId" tasksDependenciesExecPre "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPrePrepare "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPreRun "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPreFinish "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     restore_run | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
-                    runLocalToProject "$loadedId" tasksDependenciesExecPost "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPostPrepare "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPostRun "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
+                    runLocalToProject "$loadedId" tasksDependenciesExecPostFinish "restore" false "$loadedId" "$LOCALPROJECT" | sed "s/^/>>> /g" | sed "s/^>>> >>>/>>>>>/g"  | sed "s/^>>> >>/>>>/g" | sed "s/^>>> >/>>>/g"
                     RESTORERECURSING="$recLAST"
                     ANTIRECURSIONLIST=("${callTaskListLast[@]}")    
                 fi
@@ -591,6 +616,29 @@ function restore_run() {
         TASKMEMORYREFSCANNER_POPULATE=()
         PROJECTMEMORYREFSCANNER_SCANNER=()
         TASKMEMORYREFSCANNER_SCANNER=()
+        AVAILABLE_TASKS=()
+        AVAILABLE_TASKS_LIST=()
+        TASKS_FILES=()
+        TASKS_KEYS=()
+        TASKS_SYNTAX=()
+        TASKS_DESCRIPTIONSHORT=()
+        TASKS_DESCRIPTIONFULL=()
+        TASKS_PARAMETERLISTS=()
+        TASKS_HELPSHEETLISTS=()
+        PARAMETERS_NAME=()
+        PARAMETERS_REQUIRED=()
+        PARAMETERS_SYNTAX=()
+        PARAMETERS_DESCRIPTIONSHORT=()
+        PARAMETERS_DESCRIPTIONFULL=()
+        TASKS_OWNPARSEREQUIRED=()
+        PARAMETERS_REQUIRE_VALUE=()
+        TASKS_HELPSHEETS_KEYWORDS=()
+        PROJECTS_TASKS_LISTS=()
+        PROJECTS_TASKS_NAMES=()
+        PROJECTS_TASKS_PROJECTID=()
+        PROJECTS_TASKS_PROJECTDIR=()
+        PROJECTS_TASKS_ISPROJECT=()
+        PROJECTS_TASKS_PROJECTINSTS=()
 
         # Load projects
         if ! loadProject "<root>" "$PWD" "<root project>" "" false false false ">>> " ; then
@@ -621,7 +669,7 @@ function restore_run() {
             exit 1
         fi
         cd "$lPWD"
-        echo ">> Tasks will be reloaded, this can take a bit..."
+        echo ">> Reloading tasks..."
         runLocalToProject "$ROOTPROJECTID" environmentPrepareProjectTasks "restore" "$ROOTPROJECTID" "$ROOTPROJECT"
         echo ">> Restore finished."
     fi

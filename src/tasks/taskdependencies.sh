@@ -1,162 +1,4 @@
 #!/bin/bash
-
-function resolveTask() {
-    local args=("$@")
-
-    # Parse command
-    local task="$1"
-    local callback="$2"
-    local callbackParams=()
-    arrayCopyOfRange args callbackParams 2 "${#args[@]}"
-
-    # Check if the task is to run local to another project
-    if [[ "$task" == *:* ]]; then
-        # It is
-        local projectId="${task%:*}"
-        local task="${task#*:}"
-        runLocalToProject "$projectId" resolveTask "$task" "$callback" "${callbackParams[@]}"
-        return $?
-    fi
-
-    # Set state
-    taskFile=""
-    taskResolveFound=false
-
-    # Get project properties
-    local localProjectDir="$LOCALPROJECT"
-    local baseProjectDir="$BASEPROJECT"
-    local rootProjectDir="$ROOTPROJECT"
-    local localProjectId="$LOCALPROJECTID"
-    local baseProjectId="$BASEPROJECTID"
-    local rootProjectId="$ROOTPROJECTID"
-
-    # First use the local project
-    resolveTaskInProject "$task" "$localProjectId" "$localProjectDir" "$callback" "${callbackParams[@]}"
-    local exit=$?
-    if [ "$exit" != 0 ]; then
-        return $exit
-    fi
-    if [ "$taskResolveFound" == "true" ]; then
-        return $exit
-    fi
-    if [ "$baseProjectId" != "$localProjectId" ]; then
-        resolveTaskInProject "$task" "$baseProjectId" "$baseProjectDir" "$callback" "${callbackParams[@]}"
-        local exit=$?
-        if [ "$exit" != 0 ]; then
-            return $exit
-        fi
-        if [ "$taskResolveFound" == "true" ]; then
-            return $exit
-        fi
-    fi
-
-    # Check found
-    if [ "$taskResolveFound" == "true" ]; then
-        return 0
-    fi
-
-    # Not found
-    return 1
-}
-
-function resolveTaskInProject() {
-    local args=("$@")
-
-    # Parse command
-    local task="$1"
-    local projectId="$2"
-    local projectDir="$3"
-    local callback="$4"
-    local callbackParams=()
-    arrayCopyOfRange args callbackParams 4 "${#args[@]}"
-
-    # Check task
-    if [ "$task" != "restore" ]; then 
-        # Find task
-        runLocalToProject "$projectId" resolveTaskFileExec "$task" "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectDir" "$callback" "${callbackParams[@]}"
-        local exit=$?
-        
-        # Handle exit
-        if [ "$exit" != 0 ] || [ "$taskResolveFound" == "true" ]; then
-            return $exit
-        fi
-
-        # Get list ID
-        local setId="${projectsSetIds["$projectId"]}"
-
-        # Go through sub projects recursively
-        # We stay relative to the current project
-        eval 'local subprojectsList=("${'"subprojects_$setId"'[@]}")'
-        for subProjectId in "${subprojectsList[@]}"; do
-            local subProjectDir="${projects["$subProjectId"]}"
-
-            # Run in subproject
-            runLocalToProject "$subProjectId" resolveTaskInProject "$task" "$subProjectId" "$subProjectDir" "$callback" "${callbackParams[@]}"
-            local exit=$?
-            if [ "$exit" != 0 ] || [ "$taskResolveFound" == "true" ]; then
-                return $exit
-            fi
-        done
-
-        # Go through dependencies recursively
-        # We stay relative to the current project
-        eval 'local dependenciesList=("${'"dependencies_$setId"'[@]}")'
-        for depId in "${dependenciesList[@]}"; do
-            local depDir="${projects["$depId"]}"
-
-            # Run in dependency
-            runLocalToProject "$depId" resolveTaskInProject "$task" "$depId" "$depDir" "$callback" "${callbackParams[@]}"
-            local exit=$?
-            if [ "$exit" != 0 ] || [ "$taskResolveFound" == "true" ]; then
-                return $exit
-            fi
-        done
-    fi
-
-    # Try finding it in the runtime
-    local runtimeTaskDir="$RUNTIMEPATH/builtin/tasks"
-    if [ -d "$runtimeTaskDir" ]; then
-        # Find task
-        runLocalToProject "$projectId" resolveTaskFileExec "$task" "$runtimeTaskDir" true  "" "" "$callback" "${callbackParams[@]}"
-        local exit=$?
-
-        # Handle exit
-        if [ "$exit" != 0 ]; then
-            return $exit
-        fi
-    fi
-}
-
-function resolveTaskFileExec() {
-    local args=("$@")
-
-    # Parse command
-    local task="$1"
-    local tasksDir="$2"
-    local isProject="$3" # if false, its a runtime task
-    local projectId="$4"
-    local projectDir="$5"
-    local callback="$6"
-    local callbackParams=()
-    arrayCopyOfRange args callbackParams 6 "${#args[@]}"
-
-    # Find task
-    if [ -d "$tasksDir" ]; then
-        # Try to find task
-        if [ -f "$tasksDir/$task.task" ]; then
-            # Found task
-            taskResolveFound=true
-            taskFile="$(readlink -f "$tasksDir/$task.task")"
-            if [ "$callback" != "" ]; then
-                runFunctionSafe "$callback" "$task" "$taskFile" "${callbackParams[@]}"
-            fi
-
-            # Return success
-            return 0
-        fi
-    fi
-}
-
 declare -Ag RESOLUTIONRESULTS
 function taskDependenciesResolve() {
     local args=("$@")
@@ -206,7 +48,7 @@ function taskDependenciesResolve() {
     return 0
 }
 
-function tasksDependenciesExecPre() {
+function tasksDependenciesExecPrePrepare() {
     local args=("$@")
 
     # Parse command
@@ -235,14 +77,86 @@ function tasksDependenciesExecPre() {
         for tsk in "${dependsList[@]}"; do
             if [ "$tsk" != "" ]; then
                 if arrayContains "$tsk" loadAfterList; then
-                    callTask "$tsk" || return 1
+                    runTaskWithRunnerIfNeeded "$tsk" relativeExecuteRunnerPrepare || return 1
                 fi
             fi
         done
     fi
 }
 
-function tasksDependenciesExecPost() {
+function tasksDependenciesExecPreRun() {
+    local args=("$@")
+
+    # Parse command
+    local task="$1"
+    local isProject="$2" # if false, its a runtime task
+    local projectId="$3"
+    local projectDir="$4"
+
+    # Check
+    local taskKey="$projectId-$task"
+    if [ "$isProject" != true ]; then
+        taskKey="RUNTIME@$LOCALPROJECTID@$task"
+    fi
+    
+    # Get task properties
+    taskFile="${TASKMEMORYREFSCANNER_FILES["$taskKey"]}"
+    local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
+    if [ "$setId" != "" ]; then
+        # Got sets!
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        
+        # Run the afterTask tasks as the current task wants to be run AFTER those tasks
+        for tsk in "${dependsList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                if arrayContains "$tsk" loadAfterList; then
+                    runTaskWithRunnerIfNeeded "$tsk" relativeExecuteRunnerRun || return 1
+                fi
+            fi
+        done
+    fi
+}
+
+function tasksDependenciesExecPreFinish() {
+    local args=("$@")
+
+    # Parse command
+    local task="$1"
+    local isProject="$2" # if false, its a runtime task
+    local projectId="$3"
+    local projectDir="$4"
+
+    # Check
+    local taskKey="$projectId-$task"
+    if [ "$isProject" != true ]; then
+        taskKey="RUNTIME@$LOCALPROJECTID@$task"
+    fi
+    
+    # Get task properties
+    taskFile="${TASKMEMORYREFSCANNER_FILES["$taskKey"]}"
+    local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
+    if [ "$setId" != "" ]; then
+        # Got sets!
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        
+        # Run the afterTask tasks as the current task wants to be run AFTER those tasks
+        for tsk in "${dependsList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                if arrayContains "$tsk" loadAfterList; then
+                    runTaskWithRunnerIfNeeded "$tsk" relativeExecuteRunnerFinish || return 1
+                fi
+            fi
+        done
+    fi
+}
+
+function tasksDependenciesExecPostPrepare() {
     local args=("$@")
 
     # Parse command
@@ -271,7 +185,79 @@ function tasksDependenciesExecPost() {
         for tsk in "${dependsList[@]}"; do
             if [ "$tsk" != "" ]; then
                 if arrayContains "$tsk" loadBeforeList; then
-                    callTask "$tsk" || return 1
+                    runTaskWithRunnerIfNeeded "$tsk" relativeExecuteRunnerPrepare || return 1
+                fi
+            fi
+        done
+    fi
+}
+
+function tasksDependenciesExecPostRun() {
+    local args=("$@")
+
+    # Parse command
+    local task="$1"
+    local isProject="$2" # if false, its a runtime task
+    local projectId="$3"
+    local projectDir="$4"
+
+    # Check
+    local taskKey="$projectId-$task"
+    if [ "$isProject" != true ]; then
+        taskKey="RUNTIME@$LOCALPROJECTID@$task"
+    fi
+    
+    # Get task properties
+    taskFile="${TASKMEMORYREFSCANNER_FILES["$taskKey"]}"
+    local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
+    if [ "$setId" != "" ]; then
+        # Got sets!
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        
+        # Run the beforeTask tasks as the current task wants those tasks after the current task
+        for tsk in "${dependsList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                if arrayContains "$tsk" loadBeforeList; then
+                    runTaskWithRunnerIfNeeded "$tsk" relativeExecuteRunnerRun || return 1
+                fi
+            fi
+        done
+    fi
+}
+
+function tasksDependenciesExecPostFinish() {
+    local args=("$@")
+
+    # Parse command
+    local task="$1"
+    local isProject="$2" # if false, its a runtime task
+    local projectId="$3"
+    local projectDir="$4"
+
+    # Check
+    local taskKey="$projectId-$task"
+    if [ "$isProject" != true ]; then
+        taskKey="RUNTIME@$LOCALPROJECTID@$task"
+    fi
+    
+    # Get task properties
+    taskFile="${TASKMEMORYREFSCANNER_FILES["$taskKey"]}"
+    local setId="${TASKS_DEPENDENCY_LIST_IDS["$taskKey"]}"
+    if [ "$setId" != "" ]; then
+        # Got sets!
+        eval 'local dependsList=("${'"requiresTask_$setId"'[@]}")'
+        eval 'local loadOntoList=("${'"addTo_$setId"'[@]}")'
+        eval 'local loadAfterList=("${'"afterTask_$setId"'[@]}")'
+        eval 'local loadBeforeList=("${'"beforeTask_$setId"'[@]}")'
+        
+        # Run the beforeTask tasks as the current task wants those tasks after the current task
+        for tsk in "${dependsList[@]}"; do
+            if [ "$tsk" != "" ]; then
+                if arrayContains "$tsk" loadBeforeList; then
+                    runTaskWithRunnerIfNeeded "$tsk" relativeExecuteRunnerFinish || return 1
                 fi
             fi
         done
@@ -370,10 +356,18 @@ function onPrepareTaskFound_Init() {
             1>&2 echo Error: task discovery failed due to a failed define call, please check the log for errors
             exit $exit
         fi
+    else
+        # Set up environment (dummy)
+        setupTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
+
+        # Apply and clean
+        applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
+        cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
     fi
 
     # Check relative
     if ! arrayContains "$LOCALPROJECTID-$task" TASKS_RELATIVE_TO_CALLER; then
+        # Resolve dependencies
         for depend in "${dependsList[@]}"; do
             local taskResolveFoundLast="$taskResolveFound"
             resolveTask "$depend"
@@ -386,6 +380,8 @@ function onPrepareTaskFound_Init() {
                 exit $exit
             fi
         done
+
+        # Resolve targets
         if [ "$baseTask" != "restore" ]; then
             for depend in "${loadOntoList[@]}"; do
                 local taskResolveFoundLast="$taskResolveFound"
@@ -418,8 +414,14 @@ function onPrepareTaskFound_Init() {
     loadAfterList=()
     loadBeforeList=()
 
+    # Clean environment
+    unset -f "${task}_prepare"
+    unset -f "${task}_run"
+    unset -f "${task}_finish"
+    unset -f "${task}_define"
     cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir"
 
+    # Reset
     PROPERTIES=()
     copyAssociativeArray taskEnvLast PROPERTIES
 }
@@ -554,10 +556,13 @@ function resolveTaskAddToTargetCallback() {
     # Parse command
     local task="$1"
     local taskFile="$2"
-    local sourceProject="$3"
-    local taskToAdd="$4"
+    local isProject="$3" # if false, its a runtime task
+    local projectId="$4"
+    local projectDir="$5"
+    local sourceProject="$6"
+    local taskToAdd="$7"
     local targetLists=()
-    arrayCopyOfRange args targetLists 4 "${#args[@]}"
+    arrayCopyOfRange args targetLists 7 "${#args[@]}"
 
     # Add to tasks's own loadBefore, making the tarket load before the given tasks
     local targetTaskKey="${TASKMEMORYREFSCANNER_KEYS["$taskFile-$LOCALPROJECTID"]}"
@@ -582,117 +587,3 @@ function resolveTaskAddToTargetCallback() {
     fi
 }
 
-function findAllTasks() {
-    local args=("$@")
-
-    local projectId="$1"
-    local projectDir="$2"
-    local callback="$3"
-    local projectListToUse="$4"
-    local callbackParams=()
-    arrayCopyOfRange args callbackParams 4 "${#args[@]}"
-
-    local baseProjectId="${projectsBaseProjectIds["$projectId"]}"
-    local baseProjectDir="${projects["$baseProjectId"]}"
-    local rootProjectId="$ROOTPROJECTID"
-    local rootProjectDir="${projects["$rootProjectId"]}"
-    
-    # Initialize project
-    findAllTasksProject "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-}
-
-function findAllTasksProject() {
-    local args=("$@")
-
-    # Parse command
-    local projectId="$1"
-    local projectDir="$2"
-    local callback="$3"
-    local projectListToUse="$4"
-    local callbackParams=()
-    arrayCopyOfRange args callbackParams 4 "${#args[@]}"
-
-    # Check project list
-    if arrayContains "$projectDir" "$projectListToUse"; then
-        return
-    fi
-    eval "$projectListToUse"'+=("$projectDir")'
-
-    # Get list ID
-    local setId="${projectsSetIds["$projectId"]}"
-
-    # Go through dependencies recursively
-    # We stay relative to the current project
-    eval 'local dependenciesList=("${'"dependencies_$setId"'[@]}")'
-    for depId in "${dependenciesList[@]}"; do
-        local depDir="${projects["$depId"]}"
-
-        # Run in dependency
-        findAllTasksProject "$depId" "$depDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-        local exit=$?
-        if [ "$exit" != 0 ]; then
-            return $exit
-        fi
-    done
-
-    # Find task
-    execFindAllTasks "${projectsTasksFolders["$projectId"]}" true "$projectId" "$projectId" "$projectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-    local exit=$?
-    if [ "$exit" != 0 ]; then
-        return $exit
-    fi
-
-    # Try finding it in the runtime
-    local runtimeTaskDir="$RUNTIMEPATH/builtin/tasks"
-    if [ -d "$runtimeTaskDir" ]; then
-        # Find task
-        execFindAllTasks "$runtimeTaskDir" false "$projectId" "" "" "$callback" "$projectListToUse" "${callbackParams[@]}"
-        local exit=$?
-
-        # Handle exit
-        if [ "$exit" != 0 ]; then
-            return $exit
-        fi
-    fi
-
-    # Go through sub projects recursively
-    # We stay relative to the current project
-    eval 'local subprojectsList=("${'"subprojects_$setId"'[@]}")'
-    for subProjectId in "${subprojectsList[@]}"; do
-        local subProjectDir="${projects["$subProjectId"]}"
-
-        # Run in subproject
-        findAllTasksProject "$subProjectId" "$subProjectDir" "$callback" "$projectListToUse" "${callbackParams[@]}"
-        local exit=$?
-        if [ "$exit" != 0 ]; then
-            return $exit
-        fi
-    done
-}
-
-function execFindAllTasks() {
-    local args=("$@")
-
-    # Parse command
-    local tasksDir="$1"
-    local isProject="$2" # if false, its a runtime task
-    local projectInst="$3"
-    local projectId="$4"
-    local projectDir="$5"
-    local callback="$6"
-    local projectListToUse="$7"
-    local callbackParams=()
-    arrayCopyOfRange args callbackParams 7 "${#args[@]}"
-
-    # Find task
-    if [ -d "$tasksDir" ]; then
-        for task in "$tasksDir/"*.task; do
-            if [ -f "$task" ]; then
-                # Found task
-
-                # Run
-                taskSensitiveRunLocalToProject "$isProject" "$projectId" "$(basename "${task%*.task}")" "$projectInst" runFunctionSafe "$callback" "$(basename "${task%*.task}")" "$(readlink -f "$task")" "$isProject" "$projectId" "$projectDir" "${callbackParams[@]}"
-            fi
-        done
-    fi
-}

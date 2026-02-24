@@ -372,6 +372,28 @@ function setupTaskEnvironment() {
                 valuePresent=true
             fi
 
+            # Check required arguments
+            local id="$taskFile-$projectId"
+            local paramsSetId="${TASKS_PARAMETERLISTS["$id"]}"
+            local paramsList=()
+            eval 'paramsList=("${parameters_'"$paramsSetId"'[@]}")'
+            local sheetsList=()
+            eval 'sheetsList=("${helpsheets_'"$paramsSetId"'[@]}")'
+            
+            # Check parameters
+            if [ "${PARAMETERS_REQUIRE_VALUE["$id-$key"]}" == "true" ]; then
+                # Require value
+                if [ "$valuePresent" != true ] && ((i + 1 < len)); then
+                    i=$((i+1))
+                    skip=$((skip+1))
+                    value="${runnerArgs[$i]}"
+                    valuePresent=true
+                elif [ "$valuePresent" != true ]; then
+                    1>&2 echo "Error: missing value for '$key' argument"
+                    exit 1
+                fi
+            fi
+
             # Check value
             local i2=$((i+1))
             if [ "$valuePresent" != true ] && ((i2 < len)) && [[ "${runnerArgs[$i2]}" != "--"* ]]; then
@@ -442,7 +464,7 @@ function setupTaskEnvironment() {
                 fi
                 if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
                     # Update properties
-                    PROPERTIES+=(["$key"]="$value")
+                    PROPERTIES+=(["$valueKey"]="$value")
                 fi
             fi
         elif [[ "$arg" == "-X"* ]]; then 
@@ -514,14 +536,18 @@ function setupTaskEnvironment() {
                 fi
                 if [ "$valuePresent" == true ] && [ "$valueKeyPresent" == true ]; then
                     # Update properties
-                    PROPERTIES+=(["$key"]="$value")
-                    LOCALPROPERTIES+=(["$key"]="$value")
+                    PROPERTIES+=(["$valueKey"]="$value")
+                    LOCALPROPERTIES+=(["$valueKey"]="$value")
+
+                    # Update properties of project
+                    local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+                    eval 'locals_'"$setId"'+=(["$valueKey"]="$value")'
                 fi
             fi
         elif ([[ "$arg" == "-L"* ]]); then 
             # Assign locals
             # -L = assign local property
-            local key="${arg#*-X}"
+            local key="${arg#*-L}"
             if [[ "$key" == *=* ]]; then
                 value="${arg#*=}"
                 key="${key%=*}"
@@ -529,6 +555,10 @@ function setupTaskEnvironment() {
                 # Update properties
                 PROPERTIES+=(["$key"]="$value")
                 LOCALPROPERTIES+=(["$key"]="$value")
+
+                # Update properties of project
+                local setId="${projectsSetIds["$LOCALPROJECTID"]}"
+                eval 'locals_'"$setId"'+=(["$key"]="$value")'
             fi
         fi
         i=$((i+1))
@@ -592,7 +622,7 @@ function setupTaskEnvironment() {
         elif ([[ "$arg" == "-P"* ]]); then 
             # Assign locals
             # -P = assign task property
-            local key="${arg#*-X}"
+            local key="${arg#*-P}"
             if [[ "$key" == *=* ]]; then
                 value="${arg#*=}"
                 key="${key%=*}"
@@ -664,6 +694,124 @@ function beforeTask() {
     loadBeforeList+=("$task")
 }
 
+function defineParameter() {
+    local param="$1"
+    local description="$2"
+    if [ "$param" == "" ]; then
+        1>&2 echo "Error: missing argument 'parameter name' in defineParameter"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$description" == "" ]; then
+        1>&2 echo "Error: missing argument 'short description' in defineParameter"
+        printStackTrace 1
+        return 1
+    fi
+
+    # Define
+    parametersList+=(["$param"]="$description")
+}
+
+function defineHelpArticle() {
+    local keyword="$1"
+    local path="$2"
+    if [ "$keyword" == "" ]; then
+        1>&2 echo "Error: missing argument 'keyword' in defineHelpArticle"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$path" == "" ]; then
+        1>&2 echo "Error: missing argument 'file path' in defineHelpArticle"
+        printStackTrace 1
+        return 1
+    fi
+
+    # Define
+    helpsheetsList+=(["$keyword"]="$path")
+}
+
+function defineParameterSyntax() {
+    local param="$1"
+    local value="$2"
+    if [ "$param" == "" ]; then
+        1>&2 echo "Error: missing argument 'parameter name' in defineParameterSyntax"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$value" == "" ]; then
+        1>&2 echo "Error: missing argument 'syntax' in defineParameterSyntax"
+        printStackTrace 1
+        return 1
+    fi
+
+    # Define
+    parametersSyntaxes+=(["$param"]="$value")
+}
+
+function defineParameterDescription() {
+    local param="$1"
+    local value="$2"
+    if [ "$param" == "" ]; then
+        1>&2 echo "Error: missing argument 'parameter name' in defineParameterDescription"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$value" == "" ]; then
+        1>&2 echo "Error: missing argument 'full description' in defineParameterDescription"
+        printStackTrace 1
+        return 1
+    fi
+
+    # Define
+    parametersFullDescs+=(["$param"]="$value")
+}
+
+function defineParameterSetRequired() {
+    local param="$1"
+    local value="$2"
+    if [ "$param" == "" ]; then
+        1>&2 echo "Error: missing argument 'parameter name' in defineParameterSetRequired"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$value" == "" ]; then
+        1>&2 echo "Error: missing argument 'required' in defineParameterSetRequired"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$value" != "true" ] && [ "$value" != "false" ]; then
+        1>&2 echo "Error: invalid argument 'required' in defineParameterSetRequired: expected true or false, got $value"
+        printStackTrace 1
+        return 1
+    fi
+
+    # Define
+    parametersRequired+=(["$param"]="$value")
+}
+
+function defineParameterSetRequireValue() {
+    local param="$1"
+    local value="$2"
+    if [ "$param" == "" ]; then
+        1>&2 echo "Error: missing argument 'parameter name' in defineParameterSetRequireValue"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$value" == "" ]; then
+        1>&2 echo "Error: missing argument 'required' in defineParameterSetRequireValue"
+        printStackTrace 1
+        return 1
+    fi
+    if [ "$value" != "true" ] && [ "$value" != "false" ]; then
+        1>&2 echo "Error: invalid argument 'required' in defineParameterSetRequireValue: expected true or false, got $value"
+        printStackTrace 1
+        return 1
+    fi
+
+    # Define
+    parametersRequireValue+=(["$param"]="$value")
+}
+
 function setupTaskDefineEnvironment() {
     local args=("$@")
 
@@ -680,6 +828,22 @@ function setupTaskDefineEnvironment() {
     allowMultiExecute=false
     runtimeTaskShared=false
     runRelativeToCallerProject=false
+
+    # Syntax
+    taskDescriptionShort=""
+    taskDescriptionFull=""
+    taskSyntaxHint=""
+    taskReceiveAllArgs=false
+
+    # Parameters
+    declare -Ag parametersList=()
+    declare -Ag parametersSyntaxes=()
+    declare -Ag parametersFullDescs=()
+    declare -Ag parametersRequired=()
+    declare -Ag parametersRequireValue=()
+
+    # Help sheets
+    declare -Ag helpsheetsList=()
 }
 
 function applyTaskDefineEnvironment() {
@@ -724,6 +888,100 @@ function applyTaskDefineEnvironment() {
     if [ "$runRelativeToCallerProject" == "true" ]; then
         TASKS_RELATIVE_TO_CALLER+=("$projectId-$task")
     fi
+
+    # Task key
+    local taskKey="$projectId-$task"
+    if [ "$isProject" != true ]; then
+        taskKey="RUNTIME@$LOCALPROJECTID@$task"
+    fi
+    
+    # Add task
+    local targetProject="$projectId"
+    if [ "$isProject" != true ]; then
+        targetProject="$LOCALPROJECTID"
+    fi
+    AVAILABLE_TASKS+=(["$taskFile-$targetProject"]="$task")
+    AVAILABLE_TASKS_LIST+=("$taskFile-$targetProject")
+
+    # Set syntax fields
+    TASKS_FILES+=(["$taskFile-$targetProject"]="$taskFile")
+    TASKS_KEYS+=(["$taskFile-$targetProject"]="$taskKey")
+    TASKS_DESCRIPTIONSHORT+=(["$taskFile-$targetProject"]="$taskDescriptionShort")
+    TASKS_DESCRIPTIONFULL+=(["$taskFile-$targetProject"]="$taskDescriptionFull")
+    TASKS_SYNTAX+=(["$taskFile-$targetProject"]="$taskSyntaxHint")
+
+    # Task parameters
+    if [ "${TASKS_PARAMETERLISTS["$taskFile-$targetProject"]}" == "" ]; then
+        local setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
+        while arrayContains "$setId" setIds ; do
+            setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
+        done
+        setIds+=("$setId")
+        TASKS_PARAMETERLISTS+=(["$taskFile-$targetProject"]="$setId")
+    fi
+    local setId="${TASKS_PARAMETERLISTS["$taskFile-$targetProject"]}"
+    eval 'parameters_'"$setId"'=()'
+
+    # Help sheets
+    if [ "${TASKS_HELPSHEETLISTS["$taskFile-$targetProject"]}" == "" ]; then
+        local setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
+        while arrayContains "$setId" setIds ; do
+            setId="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)"
+        done
+        setIds+=("$setId")
+        TASKS_HELPSHEETLISTS+=(["$taskFile-$targetProject"]="$setId")
+    fi
+    local setId="${TASKS_HELPSHEETLISTS["$taskFile-$targetProject"]}"
+    eval 'helpsheets_'"$setId"'=()'
+
+    # Settings
+    if [ "$taskReceiveAllArgs" == "true" ]; then
+        TASKS_OWNPARSEREQUIRED+=("$taskFile-$targetProject")
+    fi
+
+    # Assign parameters
+    for paramName in "${!parametersList[@]}"; do
+        local shortDescription="${parametersList["$paramName"]}"
+        local fullDescription="${parametersFullDescs["$paramName"]}"
+        local syntax="${parametersSyntaxes["$paramName"]}"
+        local required="${parametersRequired["$paramName"]}"
+        local requireValue="${parametersRequireValue["$paramName"]}"
+
+        local setId="${TASKS_PARAMETERLISTS["$taskFile-$targetProject"]}"
+        eval "parameters_$setId"'+=("$paramName")'
+        PARAMETERS_NAME+=(["$taskFile-$targetProject-$paramName"]="$paramName")
+        PARAMETERS_REQUIRED+=(["$taskFile-$targetProject-$paramName"]="$required")
+        PARAMETERS_SYNTAX+=(["$taskFile-$targetProject-$paramName"]="$syntax")
+        PARAMETERS_DESCRIPTIONSHORT+=(["$taskFile-$targetProject-$paramName"]="$shortDescription")
+        PARAMETERS_DESCRIPTIONFULL+=(["$taskFile-$targetProject-$paramName"]="$fullDescription")
+        PARAMETERS_REQUIRE_VALUE+=(["$taskFile-$targetProject-$paramName"]="$requireValue")
+    done
+
+    # Assign help sheets
+    for keyword in "${!helpsheetsList[@]}"; do
+        local relativePath="${helpsheetsList["$keyword"]}"
+
+        # Get local path
+        local cPWD="$PWD"
+        if [ "$isProject" == true ]; then
+            cd "$projectDir"
+        else
+            cd "$RUNTIMEPATH/builtin"
+        fi
+        local fullPath="$(readlink -f "$relativePath")"
+        cd "$cPWD"
+
+        # Check
+        if [ ! -f "$fullPath" ]; then
+            1>&2 echo "Error: task load error: failed to define task '$task' of project $projectId: could not find help article file $relativePath"
+            exit 1
+        fi
+
+        # Add
+        local setId="${TASKS_HELPSHEETLISTS["$taskFile-$targetProject"]}"
+        eval "helpsheets_$setId"'+=("$keyword")'
+        TASKS_HELPSHEETS_KEYWORDS+=(["$taskFile-$targetProject-$keyword"]="$fullPath")
+    done
 }
 
 function cleanTaskDefineEnvironment() {
@@ -742,4 +1000,14 @@ function cleanTaskDefineEnvironment() {
     unset allowMultiExecute
     unset runtimeTaskShared
     unset runRelativeToCallerProject
+    unset taskDescriptionShort
+    unset taskDescriptionFull
+    unset taskSyntaxHint
+    unset parametersList
+    unset parametersSyntaxes
+    unset parametersFullDescs
+    unset parametersRequired
+    unset parametersRequireValue
+    unset helpsheetsList
+    unset taskReceiveAllArgs
 }
