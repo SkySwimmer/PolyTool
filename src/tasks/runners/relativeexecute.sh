@@ -78,6 +78,184 @@ function relativeExecuteRunner() {
     return 0
 }
 
+function relativeExecuteRunnerPrepare() {
+    local args=("$@")
+
+    # Parse command
+    local onlyWhenNeeded="$1"
+    local task="$2"
+    local runnerArgs=()
+    arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
+
+    # Check if the task is to run local to another project
+    if [[ "$task" == *:* ]]; then
+        # It is
+        local projectId="${task%:*}"
+        local task="${task#*:}"
+        runLocalToProject "$projectId" relativeExecuteRunnerPrepare "$onlyWhenNeeded" "$task" "${runnerArgs[@]}"
+        return $?
+    fi
+
+    # Get last env
+    declare -A taskEnvLast=()
+    copyAssociativeArray PROPERTIES taskEnvLast
+    PROPERTIES=()
+    
+    # Populate properties
+    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+    copyAssociativeArray taskEnvLast PROPERTIES
+
+    # Get project properties
+    local localProjectDir="$LOCALPROJECT"
+    local baseProjectDir="$BASEPROJECT"
+    local rootProjectDir="$ROOTPROJECT"
+    local localProjectId="$LOCALPROJECTID"
+    local baseProjectId="$BASEPROJECTID"
+    local rootProjectId="$ROOTPROJECTID"
+    
+    # First use the local project
+    taskFound=false
+    taskRunnerProjectRelativePrepare "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
+    local exit=$?
+    if [ "$exit" != 0 ]; then
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
+        return $exit
+    fi
+
+    # Check found
+    if [ "$taskFound" != "true" ]; then
+        # No tasks found
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
+        return 1
+    fi
+
+    # Success
+    PROPERTIES=()
+    copyAssociativeArray taskEnvLast PROPERTIES
+    return 0
+}
+
+function relativeExecuteRunnerRun() {
+    local args=("$@")
+
+    # Parse command
+    local onlyWhenNeeded="$1"
+    local task="$2"
+    local runnerArgs=()
+    arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
+
+    # Check if the task is to run local to another project
+    if [[ "$task" == *:* ]]; then
+        # It is
+        local projectId="${task%:*}"
+        local task="${task#*:}"
+        runLocalToProject "$projectId" relativeExecuteRunnerRun "$onlyWhenNeeded" "$task" "${runnerArgs[@]}"
+        return $?
+    fi
+
+    # Get last env
+    declare -A taskEnvLast=()
+    copyAssociativeArray PROPERTIES taskEnvLast
+    PROPERTIES=()
+    
+    # Populate properties
+    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+    copyAssociativeArray taskEnvLast PROPERTIES
+
+    # Get project properties
+    local localProjectDir="$LOCALPROJECT"
+    local baseProjectDir="$BASEPROJECT"
+    local rootProjectDir="$ROOTPROJECT"
+    local localProjectId="$LOCALPROJECTID"
+    local baseProjectId="$BASEPROJECTID"
+    local rootProjectId="$ROOTPROJECTID"
+    
+    # Call run
+    taskRunnerProjectRelativeRun "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
+    local exit=$?
+    if [ "$exit" != 0 ]; then
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
+        return $exit
+    fi
+
+    # Check found
+    if [ "$taskFound" != "true" ]; then
+        # No tasks found
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
+        return 1
+    fi
+
+    # Success
+    PROPERTIES=()
+    copyAssociativeArray taskEnvLast PROPERTIES
+    return 0
+}
+
+function relativeExecuteRunnerFinish() {
+    local args=("$@")
+
+    # Parse command
+    local onlyWhenNeeded="$1"
+    local task="$2"
+    local runnerArgs=()
+    arrayCopyOfRange args runnerArgs 2 "${#args[@]}"
+
+    # Check if the task is to run local to another project
+    if [[ "$task" == *:* ]]; then
+        # It is
+        local projectId="${task%:*}"
+        local task="${task#*:}"
+        runLocalToProject "$projectId" relativeExecuteRunnerFinish "$onlyWhenNeeded" "$task" "${runnerArgs[@]}"
+        return $?
+    fi
+
+    # Get last env
+    declare -A taskEnvLast=()
+    copyAssociativeArray PROPERTIES taskEnvLast
+    PROPERTIES=()
+    
+    # Populate properties
+    copyAssociativeArray GLOBALPROPERTIES PROPERTIES
+    copyAssociativeArray LOCALPROPERTIES PROPERTIES
+    copyAssociativeArray taskEnvLast PROPERTIES
+
+    # Get project properties
+    local localProjectDir="$LOCALPROJECT"
+    local baseProjectDir="$BASEPROJECT"
+    local rootProjectDir="$ROOTPROJECT"
+    local localProjectId="$LOCALPROJECTID"
+    local baseProjectId="$BASEPROJECTID"
+    local rootProjectId="$ROOTPROJECTID"
+    
+    # Call finish
+    taskRunnerProjectRelativeFinish "$onlyWhenNeeded" "$task" "$localProjectId" "$localProjectDir" "${runnerArgs[@]}"
+    local exit=$?
+    if [ "$exit" != 0 ]; then
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
+        return $exit
+    fi
+
+    # Check found
+    if [ "$taskFound" != "true" ]; then
+        # No tasks found
+        PROPERTIES=()
+        copyAssociativeArray taskEnvLast PROPERTIES
+        return 1
+    fi
+
+    # Success
+    PROPERTIES=()
+    copyAssociativeArray taskEnvLast PROPERTIES
+    return 0
+}
+
 function taskRunnerProjectRelativePrepare() {
     local args=("$@")
 
@@ -615,6 +793,27 @@ function execTasksRelativePrepare() {
             fi
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
         
+            # Load task details
+            local taskFile="$tasksDir/$task.task"
+            local id="$taskFile-$projectId"
+            local paramsSetId="${TASKS_PARAMETERLISTS["$id"]}"
+            local paramsList=()
+            eval 'paramsList=("${parameters_'"$paramsSetId"'[@]}")'
+            local sheetsList=()
+            eval 'sheetsList=("${helpsheets_'"$paramsSetId"'[@]}")'
+            
+            # Check parameters
+            for paramName in "${paramsList[@]}"; do
+                # Check required
+                if [ "${PARAMETERS_REQUIRED["$id-$paramName"]}" == true ]; then
+                    # Check present
+                    if ! arrayContains "--$paramName" args; then
+                        1>&2 echo "Error: missing required parameter '$paramName' for task '$task'"
+                        return 1
+                    fi
+                fi
+            done
+
             # Get last env
             declare -A parametersEnvLast=()
             copyAssociativeArray PARAMETERS parametersEnvLast
@@ -622,8 +821,8 @@ function execTasksRelativePrepare() {
 
             # Found task
             # Run pre-tasks
-            tasksDependenciesExecPre "$task" "$isProject" "$projectId" "$projectDir" || return 1
-
+            tasksDependenciesExecPrePrepare "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Show log
             if [ "$isProject" == true ]; then
                 echo "> $LOCALPROJECTID : $projectId:$task -> PREPARE"
@@ -642,22 +841,13 @@ function execTasksRelativePrepare() {
                 source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"
             fi
 
+            # Define
             if type "${task}_define" &>/dev/null; then
                 setupTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 runFunctionSafe "${task}_define" "${runnerArgs[@]}"
                 local exit=$?
                 applyTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
                 cleanTaskDefineEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
-                if [ "$exit" != 0 ]; then
-                    PARAMETERS=()
-                    copyAssociativeArray parametersEnvLast PARAMETERS
-                    cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
-                    return $exit
-                fi
-            fi
-            if type "${task}_prepare" &>/dev/null; then
-                runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
-                local exit=$?
                 if [ "$exit" != 0 ]; then
                     PARAMETERS=()
                     copyAssociativeArray parametersEnvLast PARAMETERS
@@ -687,6 +877,10 @@ function execTasksRelativePrepare() {
             unset -f "${task}_define"
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
+            # Found task
+            # Run post-tasks
+            tasksDependenciesExecPostPrepare "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Return
             return $exit
         fi
@@ -732,6 +926,10 @@ function execTasksRelativeRun() {
             copyAssociativeArray PARAMETERS parametersEnvLast
             PARAMETERS=()
 
+            # Found task
+            # Run pre-tasks
+            tasksDependenciesExecPreRun "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Show log
             if [ "$isProject" == true ]; then
                 echo "> $LOCALPROJECTID : $projectId:$task -> RUN"
@@ -769,6 +967,10 @@ function execTasksRelativeRun() {
             unset -f "${task}_define"
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
+            # Found task
+            # Run post-tasks
+            tasksDependenciesExecPostRun "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Return
             return $exit
         fi
@@ -825,6 +1027,10 @@ function execTasksRelativeFinish() {
                 source "$localTaskFile" || taskLoadError "<local>/polylocal/tasks/$task.task"
             fi
 
+            # Found task
+            # Run pre-tasks
+            tasksDependenciesExecPreFinish "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Call finish
             if type "${task}_finish" &>/dev/null; then
                 # Show log
@@ -855,7 +1061,7 @@ function execTasksRelativeFinish() {
 
             # Found task
             # Run post-tasks
-            tasksDependenciesExecPost "$task" "$isProject" "$projectId" "$projectDir" || return 1
+            tasksDependenciesExecPostFinish "$task" "$isProject" "$projectId" "$projectDir" || return 1
 
             # Return
             return $exit

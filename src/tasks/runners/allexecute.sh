@@ -641,6 +641,27 @@ function execTasksAllPrepare() {
             fi
             ANTIRECURSIONLIST+=("$tasksDir/$task.task")
 
+            # Load task details
+            local taskFile="$tasksDir/$task.task"
+            local id="$taskFile-$projectId"
+            local paramsSetId="${TASKS_PARAMETERLISTS["$id"]}"
+            local paramsList=()
+            eval 'paramsList=("${parameters_'"$paramsSetId"'[@]}")'
+            local sheetsList=()
+            eval 'sheetsList=("${helpsheets_'"$paramsSetId"'[@]}")'
+            
+            # Check parameters
+            for paramName in "${paramsList[@]}"; do
+                # Check required
+                if [ "${PARAMETERS_REQUIRED["$id-$paramName"]}" == true ]; then
+                    # Check present
+                    if ! arrayContains "--$paramName" args; then
+                        1>&2 echo "Error: missing required parameter '$paramName' for task '$task'"
+                        return 1
+                    fi
+                fi
+            done
+
             # Get last env
             declare -A parametersEnvLast=()
             copyAssociativeArray PARAMETERS parametersEnvLast
@@ -648,7 +669,7 @@ function execTasksAllPrepare() {
 
             # Found task
             # Run pre-tasks
-            tasksDependenciesExecPre "$task" "$isProject" "$projectId" "$projectDir" || return 1
+            tasksDependenciesExecPrePrepare "$task" "$isProject" "$projectId" "$projectDir" || return 1
         
             # Show log
             if [ "$isProject" == true ]; then
@@ -682,16 +703,6 @@ function execTasksAllPrepare() {
                     return $exit
                 fi
             fi
-            if type "${task}_prepare" &>/dev/null; then
-                runFunctionSafe "${task}_prepare" "${runnerArgs[@]}"
-                local exit=$?
-                if [ "$exit" != 0 ]; then
-                    PARAMETERS=()
-                    copyAssociativeArray parametersEnvLast PARAMETERS
-                    cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
-                    return $exit
-                fi
-            fi
 
             # Call prepare
             if type "${task}_prepare" &>/dev/null; then
@@ -714,6 +725,10 @@ function execTasksAllPrepare() {
             unset -f "${task}_define"
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
+            # Found task
+            # Run post-tasks
+            tasksDependenciesExecPostPrepare "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Return
             return $exit
         fi
@@ -759,6 +774,10 @@ function execTasksAllRun() {
             copyAssociativeArray PARAMETERS parametersEnvLast
             PARAMETERS=()
 
+            # Found task
+            # Run pre-tasks
+            tasksDependenciesExecPreRun "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Show log
             if [ "$isProject" == true ]; then
                 echo "> $LOCALPROJECTID : $projectId:$task -> RUN"
@@ -796,6 +815,10 @@ function execTasksAllRun() {
             unset -f "${task}_define"
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
+            # Found task
+            # Run post-tasks
+            tasksDependenciesExecPostRun "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Return
             return $exit
         fi
@@ -841,6 +864,10 @@ function execTasksAllFinish() {
             copyAssociativeArray PARAMETERS parametersEnvLast
             PARAMETERS=()
 
+            # Found task
+            # Run pre-tasks
+            tasksDependenciesExecPreFinish "$task" "$isProject" "$projectId" "$projectDir" || return 1
+        
             # Load task
             setupTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
             source "$tasksDir/$task.task" || taskLoadError "$task.task"
@@ -881,7 +908,7 @@ function execTasksAllFinish() {
             cleanTaskEnvironment "$task" "$tasksDir/$task.task" "$isProject" "$projectId" "$projectDir" "${runnerArgs[@]}"
 
             # Run post-tasks
-            tasksDependenciesExecPost "$task" "$isProject" "$projectId" "$projectDir" || return 1
+            tasksDependenciesExecPostFinish "$task" "$isProject" "$projectId" "$projectDir" || return 1
 
             # Return
             return $exit
