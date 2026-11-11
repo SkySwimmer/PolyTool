@@ -14,6 +14,27 @@ function arrayContains() {
     return 1
 }
 
+function arrayRemove() {
+    local key="$1"
+    local array="$2"
+    
+    eval 'local arrIn=("${'"$array"'[@]}")'
+    local nw=()
+    for ent in "${arrIn[@]}"; do
+        if [ "$ent" != "$key" ]; then
+            nw+=("$ent")
+        fi
+    done
+    eval "$array"'=("${nw[@]}")'
+}
+
+function arrayAdd() {
+    local key="$1"
+    local array="$2"
+    
+    eval "$array"'+=("$key")'
+}
+
 function copyAssociativeArray()  {
     local array="$1"
     local target="$2"
